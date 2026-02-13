@@ -71,7 +71,7 @@ const ARCHETYPES: Record<
   sentinel: {
     label: "Sentinel",
     role: "Frontline defense",
-    avatar: "🛡️",
+    avatar: "/assets/characters/sentinel-card.png",
     aura: "from-sky-400/20 via-cyan-500/10 to-transparent",
     chip: "border-cyan-300/30 bg-cyan-500/12 text-cyan-100",
     tone: "text-cyan-200",
@@ -79,7 +79,7 @@ const ARCHETYPES: Record<
   sniper: {
     label: "Sniper",
     role: "Precision strike",
-    avatar: "🎯",
+    avatar: "/assets/characters/sniper-card.png",
     aura: "from-fuchsia-400/20 via-violet-500/10 to-transparent",
     chip: "border-fuchsia-300/30 bg-fuchsia-500/12 text-fuchsia-100",
     tone: "text-fuchsia-200",
@@ -87,7 +87,7 @@ const ARCHETYPES: Record<
   analyst: {
     label: "Analyst",
     role: "Intel & planning",
-    avatar: "🧠",
+    avatar: "/assets/characters/analyst-card.png",
     aura: "from-indigo-400/20 via-blue-500/10 to-transparent",
     chip: "border-indigo-300/30 bg-indigo-500/12 text-indigo-100",
     tone: "text-indigo-200",
@@ -95,7 +95,7 @@ const ARCHETYPES: Record<
   medic: {
     label: "Medic",
     role: "Recovery support",
-    avatar: "💉",
+    avatar: "/assets/characters/medic-card.png",
     aura: "from-emerald-400/20 via-teal-500/10 to-transparent",
     chip: "border-emerald-300/30 bg-emerald-500/12 text-emerald-100",
     tone: "text-emerald-200",
@@ -118,7 +118,7 @@ const defaults: BotConfig[] = [
     lastRun: "-",
     archetype: "analyst",
     tier: "III",
-    avatar: "🧠",
+    avatar: ARCHETYPES.analyst.avatar,
   },
   {
     id: "zhu-ops",
@@ -135,7 +135,7 @@ const defaults: BotConfig[] = [
     lastRun: "-",
     archetype: "sentinel",
     tier: "II",
-    avatar: "🛡️",
+    avatar: ARCHETYPES.sentinel.avatar,
   },
 ];
 
@@ -151,6 +151,11 @@ const initialRecruitDraft: RecruitDraft = {
   schedule: "manual",
   channel: "telegram",
 };
+
+function resolveAvatar(avatar: string | undefined, archetype: BotArchetype) {
+  if (!avatar || !avatar.startsWith("/")) return ARCHETYPES[archetype].avatar;
+  return avatar;
+}
 
 function NodeCore() {
   const points: [number, number, number][] = [
@@ -212,7 +217,7 @@ function loadBots(): BotConfig[] {
         priority: (b.priority as BotConfig["priority"]) || fallback.priority || "med",
         archetype,
         tier: (b.tier as BotTier) || fallback.tier || "I",
-        avatar: b.avatar || ARCHETYPES[archetype].avatar,
+        avatar: resolveAvatar(b.avatar, archetype),
       };
     }) as BotConfig[];
   } catch {
@@ -490,8 +495,8 @@ export default function Page() {
                       >
                         {bot && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a?.aura}`} />}
                         <div className="relative flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-slate-950/80 text-xl">
-                            {bot?.avatar || "◌"}
+                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/80">
+                            {bot ? <UnitPortrait src={bot.avatar} alt={bot.name} /> : <span className="text-cyan-100/60">◌</span>}
                           </div>
                           <div>
                             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Slot {slotLabel}</p>
@@ -536,6 +541,11 @@ export default function Page() {
               <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl sm:grid-cols-2">
                 <div className="rounded-xl border border-cyan-100/10 bg-slate-950/55 p-4">
                   <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/65">Selected Unit</p>
+                  {selected && (
+                    <div className="mt-2 h-20 w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
+                      <UnitPortrait src={selected.avatar} alt={selected.name} className="h-full w-full object-cover" />
+                    </div>
+                  )}
                   <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
                   <p className="mt-1 text-xs text-slate-300">
                     {selected ? `${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}
@@ -645,8 +655,8 @@ export default function Page() {
                           onChange={() => toggleBotSelection(b.id)}
                           className="mt-1 h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
                         />
-                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-slate-950/75 text-2xl">
-                          {b.avatar}
+                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
+                          <UnitPortrait src={b.avatar} alt={b.name} />
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
                           <p className="text-base font-semibold text-white">{b.name}</p>
@@ -797,7 +807,9 @@ export default function Page() {
                     >
                       <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
                       <div className="relative">
-                        <p className="text-3xl">{a.avatar}</p>
+                        <div className="h-24 w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950/70">
+                          <UnitPortrait src={a.avatar} alt={a.label} className="h-full w-full object-cover" />
+                        </div>
                         <p className={`mt-2 text-base font-semibold ${a.tone}`}>{a.label}</p>
                         <p className="mt-1 text-xs text-slate-300">{a.role}</p>
                       </div>
@@ -933,6 +945,10 @@ export default function Page() {
       )}
     </main>
   );
+}
+
+function UnitPortrait({ src, alt, className = "h-full w-full object-cover" }: { src: string; alt: string; className?: string }) {
+  return <img src={src} alt={alt} className={className} draggable={false} />;
 }
 
 function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
