@@ -147,6 +147,7 @@ export default function Page() {
   const [selectedId, setSelectedId] = useState<string>(defaults[0].id);
   const [viewMode, setViewMode] = useState<"commander" | "detail">("commander");
   const [showConfig, setShowConfig] = useState(false);
+  const [selectedBots, setSelectedBots] = useState<string[]>([]);
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
 
   useEffect(() => setBots(loadBots()), []);
@@ -204,6 +205,23 @@ export default function Page() {
     const [latest, ...rest] = versions;
     localStorage.setItem(VERSIONS_KEY, JSON.stringify(rest));
     persist(latest.bots);
+  };
+
+  const toggleBotSelection = (id: string) => {
+    setSelectedBots((prev) => (prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id]));
+  };
+
+  const applyBatchAction = (action: "enable" | "disable" | "pause" | "resume") => {
+    if (!selectedBots.length) return;
+    const next = bots.map((b) => {
+      if (!selectedBots.includes(b.id)) return b;
+      if (action === "enable") return { ...b, enabled: true };
+      if (action === "disable") return { ...b, enabled: false };
+      if (action === "pause") return { ...b, status: "paused" as const };
+      return { ...b, status: "running" as const };
+    });
+    persist(next);
+    setGatewayMsg(`Batch action applied: ${action} (${selectedBots.length} bots)`);
   };
 
   const sendGatewayAction = async (action: "summon" | "reset") => {
@@ -369,6 +387,15 @@ export default function Page() {
               </div>
             </div>
 
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-100/12 bg-slate-900/45 p-2 text-xs">
+              <span className="px-2 text-slate-300">Selected: {selectedBots.length}</span>
+              <button onClick={() => applyBatchAction("enable")} className="rounded-lg border border-emerald-300/25 px-2 py-1 text-emerald-200 hover:bg-emerald-500/10">Enable</button>
+              <button onClick={() => applyBatchAction("disable")} className="rounded-lg border border-rose-300/25 px-2 py-1 text-rose-200 hover:bg-rose-500/10">Disable</button>
+              <button onClick={() => applyBatchAction("pause")} className="rounded-lg border border-amber-300/25 px-2 py-1 text-amber-200 hover:bg-amber-500/10">Pause</button>
+              <button onClick={() => applyBatchAction("resume")} className="rounded-lg border border-cyan-300/25 px-2 py-1 text-cyan-200 hover:bg-cyan-500/10">Resume</button>
+              <button onClick={() => setSelectedBots([])} className="rounded-lg border border-white/20 px-2 py-1 text-slate-300 hover:bg-white/10">Clear</button>
+            </div>
+
             <div className="grid gap-3 md:grid-cols-2">
               {bots.map((b) => (
                 <div
@@ -380,10 +407,18 @@ export default function Page() {
                   }`}
                 >
                   <div className="mb-2 flex items-center justify-between gap-2">
-                    <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                      <p className="text-base font-semibold text-white">{b.name}</p>
-                      <p className="mt-0.5 text-xs text-slate-300">{b.provider} · {b.model}</p>
-                    </button>
+                    <div className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        checked={selectedBots.includes(b.id)}
+                        onChange={() => toggleBotSelection(b.id)}
+                        className="h-4 w-4 rounded border-cyan-200/40 bg-slate-900 text-cyan-300"
+                      />
+                      <button className="text-left" onClick={() => setSelectedId(b.id)}>
+                        <p className="text-base font-semibold text-white">{b.name}</p>
+                        <p className="mt-0.5 text-xs text-slate-300">{b.provider} · {b.model}</p>
+                      </button>
+                    </div>
                     <div className="flex items-center gap-2">
                       <span
                         className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
