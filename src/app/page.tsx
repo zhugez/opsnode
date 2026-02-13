@@ -366,7 +366,7 @@ function assignDeskSlots(list: BotConfig[]) {
 function unitSlotPosition(i: number): Vec3 {
   const lane = Math.floor(i / SQUAD_SIZE);
   const seat = i % SQUAD_SIZE;
-  const x = (seat - (SQUAD_SIZE - 1) / 2) * 0.72;
+  const x = (seat - (SQUAD_SIZE - 1) / 2) * 0.86;
   return [x, 0.09, laneCenterZ(lane)];
 }
 
