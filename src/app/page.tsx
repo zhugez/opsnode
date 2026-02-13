@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Sphere, MeshDistortMaterial, Float, Line } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
+import { OrbitControls, Float, Line } from "@react-three/drei";
+import * as THREE from "three";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -73,51 +74,171 @@ const defaults: BotConfig[] = [
   },
 ];
 
+function SentinelCharacter() {
+  const rootRef = useRef<THREE.Group>(null!);
+  const headRef = useRef<THREE.Group>(null!);
+  const chestCoreRef = useRef<THREE.Mesh>(null!);
+
+  useFrame((state) => {
+    const t = state.clock.elapsedTime;
+
+    if (rootRef.current) {
+      rootRef.current.position.y = Math.sin(t * 1.2) * 0.04;
+      rootRef.current.rotation.y = Math.sin(t * 0.35) * 0.12;
+    }
+
+    if (headRef.current) {
+      headRef.current.rotation.y = Math.sin(t * 1.9) * 0.35;
+      headRef.current.rotation.x = Math.cos(t * 1.4) * 0.06;
+    }
+
+    if (chestCoreRef.current) {
+      const pulse = 1 + Math.sin(t * 2.5) * 0.08;
+      chestCoreRef.current.scale.set(pulse, pulse, pulse);
+    }
+  });
+
+  return (
+    <group ref={rootRef}>
+      <mesh position={[0, 0.05, 0]} castShadow>
+        <boxGeometry args={[1.05, 1.2, 0.62]} />
+        <meshStandardMaterial color="#4e6f90" roughness={0.35} metalness={0.85} />
+      </mesh>
+
+      <mesh position={[0, 0.12, 0.32]}>
+        <boxGeometry args={[0.7, 0.52, 0.08]} />
+        <meshStandardMaterial color="#5d89ad" emissive="#123044" emissiveIntensity={0.45} metalness={0.7} roughness={0.25} />
+      </mesh>
+
+      <mesh ref={chestCoreRef} position={[0, 0.1, 0.38]}>
+        <octahedronGeometry args={[0.12, 0]} />
+        <meshStandardMaterial color="#8fe8ff" emissive="#36ceff" emissiveIntensity={1.1} roughness={0.18} metalness={0.55} />
+      </mesh>
+
+      <group ref={headRef} position={[0, 0.98, 0]}>
+        <mesh castShadow>
+          <capsuleGeometry args={[0.24, 0.18, 4, 12]} />
+          <meshStandardMaterial color="#5f86a8" roughness={0.3} metalness={0.84} />
+        </mesh>
+        <mesh position={[0, -0.03, 0.2]}>
+          <boxGeometry args={[0.34, 0.12, 0.08]} />
+          <meshStandardMaterial color="#9defff" emissive="#48ddff" emissiveIntensity={0.95} metalness={0.42} roughness={0.15} />
+        </mesh>
+        <mesh position={[0, 0.26, 0]}>
+          <cylinderGeometry args={[0.022, 0.022, 0.16, 12]} />
+          <meshStandardMaterial color="#78cbff" emissive="#37acff" emissiveIntensity={0.8} />
+        </mesh>
+        <mesh position={[0, 0.36, 0]}>
+          <sphereGeometry args={[0.038, 12, 12]} />
+          <meshStandardMaterial color="#c8f6ff" emissive="#67e6ff" emissiveIntensity={1.2} />
+        </mesh>
+      </group>
+
+      <mesh position={[-0.68, 0.24, 0]} castShadow>
+        <capsuleGeometry args={[0.11, 0.58, 4, 10]} />
+        <meshStandardMaterial color="#4f6f8d" roughness={0.36} metalness={0.8} />
+      </mesh>
+      <mesh position={[0.68, 0.24, 0]} castShadow>
+        <capsuleGeometry args={[0.11, 0.58, 4, 10]} />
+        <meshStandardMaterial color="#4f6f8d" roughness={0.36} metalness={0.8} />
+      </mesh>
+
+      <mesh position={[0, -0.66, 0]}>
+        <boxGeometry args={[0.62, 0.26, 0.42]} />
+        <meshStandardMaterial color="#466480" roughness={0.4} metalness={0.78} />
+      </mesh>
+
+      <mesh position={[-0.2, -1.12, 0.02]} castShadow>
+        <capsuleGeometry args={[0.1, 0.64, 4, 10]} />
+        <meshStandardMaterial color="#4e6d89" roughness={0.34} metalness={0.82} />
+      </mesh>
+      <mesh position={[0.2, -1.12, 0.02]} castShadow>
+        <capsuleGeometry args={[0.1, 0.64, 4, 10]} />
+        <meshStandardMaterial color="#4e6d89" roughness={0.34} metalness={0.82} />
+      </mesh>
+
+      <mesh position={[0, -1.56, 0.15]}>
+        <boxGeometry args={[0.75, 0.12, 0.5]} />
+        <meshStandardMaterial color="#3f5c74" roughness={0.45} metalness={0.72} />
+      </mesh>
+
+      <mesh position={[0, 0.08, -0.38]}>
+        <cylinderGeometry args={[0.16, 0.22, 0.38, 16]} />
+        <meshStandardMaterial color="#3b5470" roughness={0.4} metalness={0.76} />
+      </mesh>
+      <mesh position={[0, 0.1, -0.52]}>
+        <sphereGeometry args={[0.09, 16, 16]} />
+        <meshStandardMaterial color="#91ecff" emissive="#2fd4ff" emissiveIntensity={0.9} roughness={0.2} metalness={0.6} />
+      </mesh>
+    </group>
+  );
+}
+
 function NodeCore() {
-  const points: [number, number, number][] = [
-    [-2, 1.2, -1],
-    [-1, 0.3, 0.5],
-    [0, 0, 0],
-    [1, -0.3, -0.4],
-    [2, 0.9, 0.8],
-  ];
+  const relayLines: [number, number, number][][] = useMemo(
+    () => [
+      [
+        [-1.6, 1.2, -1.1],
+        [-0.6, 0.7, -0.4],
+        [0, 0.2, 0],
+        [0.9, 0.76, 0.32],
+        [1.65, 1.08, 0.9],
+      ],
+      [
+        [-1.5, -0.2, 1],
+        [-0.6, -0.55, 0.42],
+        [0, -0.9, 0.1],
+        [0.78, -0.42, -0.32],
+        [1.5, 0.1, -0.95],
+      ],
+      [
+        [-0.95, 1.5, 0.6],
+        [-0.35, 0.52, 0.22],
+        [0.26, 0.1, -0.1],
+        [0.95, 0.6, -0.7],
+      ],
+    ],
+    [],
+  );
 
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <pointLight position={[2.5, 2.2, 2.8]} intensity={1.3} color="#73e3ff" />
-      <pointLight position={[-2.2, -1.3, 1.1]} intensity={0.9} color="#6875ff" />
-      <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.9}>
-        <Sphere args={[1.1, 64, 64]}>
-          <MeshDistortMaterial
-            color="#62d8ff"
-            emissive="#1a6286"
-            emissiveIntensity={0.7}
-            roughness={0.08}
-            metalness={0.45}
-            distort={0.3}
-            speed={2}
-          />
-        </Sphere>
+      <ambientLight intensity={0.42} />
+      <directionalLight position={[3, 4, 2]} intensity={0.8} color="#9be9ff" />
+      <pointLight position={[2.4, 2.1, 2.6]} intensity={1.2} color="#69d8ff" />
+      <pointLight position={[-2.4, -1.1, 1.3]} intensity={0.65} color="#6076ff" />
+      <pointLight position={[0, 1.8, -2]} intensity={0.55} color="#5dd8ff" />
+
+      <Float speed={1} rotationIntensity={0.12} floatIntensity={0.45}>
+        <SentinelCharacter />
       </Float>
-      <Float speed={0.8} rotationIntensity={0.25} floatIntensity={0.45}>
-        <mesh rotation={[Math.PI / 2.2, 0, 0]}>
-          <torusGeometry args={[1.65, 0.017, 18, 140]} />
-          <meshStandardMaterial color="#76d6ff" emissive="#24496d" emissiveIntensity={0.7} />
-        </mesh>
-      </Float>
-      <Line points={points} color="#8fc7ff" lineWidth={1.2} transparent opacity={0.72} />
-      <Line points={[points[0], points[2], points[4]]} color="#bde8ff" lineWidth={0.9} transparent opacity={0.45} />
-      {points.map((p, i) => (
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.72, 0]}>
+        <ringGeometry args={[1.55, 1.9, 56]} />
+        <meshStandardMaterial color="#80deff" emissive="#2f8fb1" emissiveIntensity={0.55} metalness={0.7} roughness={0.22} side={THREE.DoubleSide} />
+      </mesh>
+
+      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.7, 0]}>
+        <ringGeometry args={[2.2, 2.34, 64]} />
+        <meshStandardMaterial color="#6ecbff" emissive="#275a82" emissiveIntensity={0.35} transparent opacity={0.65} side={THREE.DoubleSide} />
+      </mesh>
+
+      {relayLines.map((line, idx) => (
+        <Line key={idx} points={line} color={idx === 1 ? "#77b8ff" : "#a3e7ff"} lineWidth={1} transparent opacity={0.68} />
+      ))}
+
+      {relayLines.flat().map((p, i) => (
         <mesh key={i} position={p}>
-          <sphereGeometry args={[i === 2 ? 0.085 : 0.06, 18, 18]} />
-          <meshStandardMaterial color="#e5f8ff" emissive="#89e3ff" emissiveIntensity={0.9} />
+          <sphereGeometry args={[0.033, 10, 10]} />
+          <meshStandardMaterial color="#d9f8ff" emissive="#66d8ff" emissiveIntensity={0.9} />
         </mesh>
       ))}
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.85} />
+
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.5} maxPolarAngle={Math.PI * 0.62} minPolarAngle={Math.PI * 0.38} />
     </>
   );
 }
+
 
 function loadBots(): BotConfig[] {
   if (typeof window === "undefined") return defaults;
