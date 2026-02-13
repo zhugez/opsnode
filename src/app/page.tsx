@@ -458,6 +458,15 @@ function NodeCore({
   );
 }
 
+function makeBotId(existing: BotConfig[]) {
+  const used = new Set(existing.map((b) => b.id));
+  let candidate = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  while (used.has(candidate)) {
+    candidate = `bot-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  }
+  return candidate;
+}
+
 function loadBots(): BotConfig[] {
   if (typeof window === "undefined") return defaults;
   try {
@@ -474,9 +483,13 @@ function loadBots(): BotConfig[] {
           ? rawCallsign
           : nextAvailableCallsign(archetype, hydrated);
 
+      const rawId = typeof b.id === "string" ? b.id : "";
+      const id = rawId && !hydrated.some((x) => x.id === rawId) ? rawId : makeBotId(hydrated);
+
       hydrated.push({
         ...fallback,
         ...b,
+        id,
         callsign,
         priority: (b.priority as BotConfig["priority"]) || fallback.priority || "med",
         archetype,
@@ -537,12 +550,18 @@ export default function Page() {
   }, [loadoutUnits]);
 
   const persist = (next: BotConfig[]) => {
-    setBots(next);
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
+    const seen = new Set<string>();
+    const sanitized = next.filter((b) => {
+      if (seen.has(b.id)) return false;
+      seen.add(b.id);
+      return true;
+    });
+    setBots(sanitized);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   };
 
   const recruitBot = () => {
-    const id = `bot-${Date.now()}`;
+    const id = makeBotId(bots);
     const archetype = recruitDraft.archetype;
     const callsign = normalizeCallsign(recruitDraft.callsign) || nextAvailableCallsign(archetype, bots);
     const next: BotConfig[] = [
