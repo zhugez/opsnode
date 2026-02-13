@@ -238,13 +238,13 @@ function nextAvailableCallsign(archetype: BotArchetype, existing: BotConfig[]) {
 
 type Vec3 = [number, number, number];
 
-const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string }> = {
-  idle: { color: "#94a3b8", accent: "#cbd5e1" },
-  running: { color: "#22c55e", accent: "#86efac" },
-  paused: { color: "#f59e0b", accent: "#fcd34d" },
+const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string; glow: string }> = {
+  idle: { color: "#94a3b8", accent: "#cbd5e1", glow: "rgba(148, 163, 184, 0.5)" },
+  running: { color: "#22c55e", accent: "#86efac", glow: "rgba(34, 197, 94, 0.6)" },
+  paused: { color: "#f59e0b", accent: "#fcd34d", glow: "rgba(245, 158, 11, 0.6)" },
 };
 
-const SQUAD_SIZE = 4;
+const SQUAD_SIZE = 8;
 
 type SquadDefinition = {
   id: string;
@@ -286,7 +286,7 @@ function squadForSlot(slot: number | undefined) {
 }
 
 function laneCenterZ(index: number) {
-  return index * 1.08 - 1.08;
+  return index * 2.4 - 2.4;
 }
 
 function squadSeatSlot(squadId: string, seat: number) {
@@ -366,8 +366,11 @@ function assignDeskSlots(list: BotConfig[]) {
 function unitSlotPosition(i: number): Vec3 {
   const lane = Math.floor(i / SQUAD_SIZE);
   const seat = i % SQUAD_SIZE;
-  const x = (seat - (SQUAD_SIZE - 1) / 2) * 0.86;
-  return [x, 0.09, laneCenterZ(lane)];
+  const row = Math.floor(seat / 4);
+  const col = seat % 4;
+  const x = (col - 1.5) * 1.1;
+  const z = laneCenterZ(lane) + (row - 0.5) * 1.1;
+  return [x, 0.09, z];
 }
 
 function formationSlot(i: number): Vec3 {
@@ -390,11 +393,11 @@ function SceneEnvironment({
   squadById: Map<string, SquadDefinition>;
 }) {
   const inlayRun: Vec3[] = [
-    [-1.85, 0.01, 0.68],
-    [-0.95, 0.01, 0.36],
-    [0, 0.01, 0.22],
-    [0.95, 0.01, 0.36],
-    [1.85, 0.01, 0.68],
+    [-3.85, 0.01, 3.68],
+    [-1.95, 0.01, 2.36],
+    [0, 0.01, 1.22],
+    [1.95, 0.01, 2.36],
+    [3.85, 0.01, 3.68],
   ];
 
   const desk = useGLTF("/assets/office/desk.glb");
@@ -407,20 +410,20 @@ function SceneEnvironment({
 
   return (
     <>
-      <color attach="background" args={["#0b0d11"]} />
-      <ambientLight intensity={0.42} color="#f4efe7" />
-      <directionalLight position={[2.4, 4.6, 3.2]} intensity={0.95} color="#fff4df" />
-      <directionalLight position={[-3.8, 2.2, -2.6]} intensity={0.3} color="#9caec6" />
-      <pointLight position={[0, 2.25, -0.1]} intensity={0.22} color="#ffe4c6" />
+      <color attach="background" args={["#05070a"]} />
+      <ambientLight intensity={0.25} color="#d1eaff" />
+      <directionalLight position={[5, 8, 5]} intensity={1.2} color="#ffffff" />
+      <directionalLight position={[-5, 4, -2]} intensity={0.4} color="#7dd3fc" />
+      <pointLight position={[0, 4, 0]} intensity={0.8} color="#0ea5e9" />
 
       <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
-        <planeGeometry args={[9, 6.8]} />
-        <meshStandardMaterial color="#141820" roughness={0.74} metalness={0.14} />
+        <planeGeometry args={[16, 12]} />
+        <meshStandardMaterial color="#0a0c10" roughness={0.8} metalness={0.2} />
       </mesh>
 
-      <mesh position={[0, -0.565, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[7, 3.9]} />
-        <meshStandardMaterial color="#1f242d" roughness={0.28} metalness={0.42} />
+      <mesh position={[0, -0.575, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[12, 10]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} />
       </mesh>
 
       {SQUADS.map((baseSquad, lane) => {
@@ -428,32 +431,43 @@ function SceneEnvironment({
         const z = laneCenterZ(lane);
         return (
           <group key={squad.id}>
-            <mesh position={[0, -0.56, z]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[6.15, 0.72]} />
-              <meshStandardMaterial color={squad.color} transparent opacity={0.1} roughness={0.4} metalness={0.08} />
+            <mesh position={[0, -0.57, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[5, 1.8]} />
+              <meshStandardMaterial color={squad.color} transparent opacity={0.15} roughness={0.1} metalness={0.5} />
             </mesh>
-            <mesh position={[-1.95, -0.55, z]} rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.08, 0.11, 24]} />
-              <meshBasicMaterial color={squad.color} transparent opacity={0.55} />
+            <mesh position={[0, -0.568, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[2.5, 2.55, 64]} />
+              <meshBasicMaterial color={squad.color} transparent opacity={0.3} />
             </mesh>
-            <Text position={[-2.1, -0.12, z]} rotation={[0, Math.PI / 2, 0]} fontSize={0.11} color={squad.color} anchorX="center" anchorY="middle">
-              {`${squad.name} · ${squad.projectTag}`}
+            <mesh position={[-2.8, -0.565, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.15, 0.2, 32]} />
+              <meshBasicMaterial color={squad.color} transparent opacity={0.6} />
+            </mesh>
+            <Text
+              position={[-3.2, 0.1, z]}
+              rotation={[0, Math.PI / 2, 0]}
+              fontSize={0.18}
+              color={squad.color}
+              anchorX="center"
+              anchorY="middle"
+            >
+              {`${squad.name} \n ${squad.projectTag}`}
             </Text>
           </group>
         );
       })}
 
-      <group position={[0, -0.55, -2.35]} scale={[4.4, 2.4, 1]}>
+      <group position={[0, -0.55, -4.35]} scale={[8.4, 4.4, 1]}>
         <Clone object={paneling.scene} />
       </group>
-      <group position={[-1.95, -0.55, -2.3]} scale={[1.8, 2.4, 1]}>
+      <group position={[-3.95, -0.55, -4.3]} scale={[3.8, 4.4, 1]}>
         <Clone object={wallWindow.scene} />
       </group>
-      <group position={[1.95, -0.55, -2.3]} scale={[1.8, 2.4, 1]}>
+      <group position={[3.95, -0.55, -4.3]} scale={[3.8, 4.4, 1]}>
         <Clone object={wallWindow.scene} />
       </group>
 
-      <group position={[0, -0.49, -0.24]} scale={[1.2, 1.2, 1.2]}>
+      <group position={[0, -0.49, -1.24]} scale={[1.5, 1.5, 1.5]}>
         <Clone object={deskCorner.scene} />
       </group>
 
@@ -465,44 +479,43 @@ function SceneEnvironment({
         return (
           <group key={`desk-slot-${i}`} position={[x, y - 0.066, z]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.172, 0.204, 24]} />
-              <meshBasicMaterial color={squadColor} transparent opacity={0.24} />
+              <ringGeometry args={[0.2, 0.24, 32]} />
+              <meshBasicMaterial color={squadColor} transparent opacity={0.4} />
             </mesh>
             <mesh position={[0, -0.006, 0]}>
-              <cylinderGeometry args={[0.154, 0.154, 0.016, 18]} />
-              <meshStandardMaterial color="#232a33" roughness={0.72} metalness={0.16} />
+              <cylinderGeometry args={[0.18, 0.18, 0.02, 24]} />
+              <meshStandardMaterial color="#1e293b" roughness={0.5} metalness={0.5} />
             </mesh>
-            <group position={[0, -0.012, -0.1]} scale={[0.48, 0.48, 0.48]}>
+            <group position={[0, -0.012, -0.12]} scale={[0.55, 0.55, 0.55]}>
               <Clone object={desk.scene} />
             </group>
-            <group position={[0, -0.012, 0.17]} rotation={[0, Math.PI, 0]} scale={[0.36, 0.36, 0.36]}>
+            <group position={[0, -0.012, 0.2]} rotation={[0, Math.PI, 0]} scale={[0.42, 0.42, 0.42]}>
               <Clone object={deskChair.scene} />
             </group>
           </group>
         );
       })}
 
-      {[-1.02, -0.34, 0.34, 1.02].map((x, i) => (
-        <group key={i} position={[x, 0.36, -0.82]} scale={[0.45, 0.45, 0.45]}>
+      {[-2, -0.6, 0.6, 2].map((x, i) => (
+        <group key={i} position={[x, 0.5, -1.8]} scale={[0.6, 0.6, 0.6]}>
           <Clone object={computerScreen.scene} />
         </group>
       ))}
 
-      {[-1.2, -0.4, 0.4, 1.2].map((x, i) => (
-        <group key={`lamp-${i}`} position={[x, 1.8, -0.55]} scale={[0.7, 0.7, 0.7]}>
+      {[-2.5, -0.8, 0.8, 2.5].map((x, i) => (
+        <group key={`lamp-${i}`} position={[x, 2.5, -1.2]} scale={[1, 1, 1]}>
           <Clone object={lampCeiling.scene} />
         </group>
       ))}
 
-      <Float speed={0.8} rotationIntensity={0.03} floatIntensity={0.08}>
-        <mesh position={[0, 1.95, -0.4]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.48, 0.015, 12, 64]} />
-          <meshStandardMaterial color="#e6d8c4" emissive="#d6c2a4" emissiveIntensity={0.16} roughness={0.3} metalness={0.18} />
+      <Float speed={1.2} rotationIntensity={0.1} floatIntensity={0.2}>
+        <mesh position={[0, 2.8, -1]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.8, 0.02, 16, 100]} />
+          <meshStandardMaterial color="#0ea5e9" emissive="#38bdf8" emissiveIntensity={1} roughness={0.1} metalness={1} />
         </mesh>
       </Float>
 
-      <Line points={inlayRun} color="#d6c2a4" lineWidth={1} transparent opacity={0.2} />
-      <Line points={[[0, 0.06, -1.1], [0, 0.35, -0.75], [0, 1.04, -2.3]]} color="#e2d7c6" lineWidth={0.8} transparent opacity={0.16} />
+      <Line points={inlayRun} color="#38bdf8" lineWidth={2} transparent opacity={0.3} />
     </>
   );
 }
@@ -538,6 +551,7 @@ function UnitActor({
   shouldSpawn: boolean;
 }) {
   const ref = useRef<Group>(null);
+  const statusIconRef = useRef<Group>(null);
   const panelMatRef = useRef<MeshStandardMaterial>(null);
   const portraitMatRef = useRef<SpriteMaterial>(null);
   const spawnGlowMatRef = useRef<MeshBasicMaterial>(null);
@@ -596,6 +610,9 @@ function UnitActor({
     if (spawnGlowMatRef.current) {
       spawnGlowMatRef.current.opacity = glowIntensity;
     }
+    if (statusIconRef.current && bot.status === "running") {
+      statusIconRef.current.rotation.z = t * 2.5;
+    }
   });
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -643,31 +660,37 @@ function UnitActor({
 
       <group position={[0, 0.5, 0]}>
         <mesh>
-          <sphereGeometry args={[0.036, 10, 10]} />
-          <meshStandardMaterial color={statusStyle.color} emissive={statusStyle.color} emissiveIntensity={0.5} />
+          <sphereGeometry args={[0.045, 16, 16]} />
+          <meshStandardMaterial color={statusStyle.color} emissive={statusStyle.color} emissiveIntensity={selected ? 2 : 1.2} />
+        </mesh>
+        <mesh rotation={[-Math.PI / 2, 0, 0]}>
+          <ringGeometry args={[0.06, 0.08, 32]} />
+          <meshBasicMaterial color={statusStyle.color} transparent opacity={0.6} />
         </mesh>
         {bot.status === "running" && (
-          <mesh position={[0.08, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
-            <coneGeometry args={[0.024, 0.06, 3]} />
-            <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.25} />
-          </mesh>
+          <group ref={statusIconRef}>
+            <mesh position={[0.1, 0, 0]}>
+              <boxGeometry args={[0.02, 0.08, 0.01]} />
+              <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.5} />
+            </mesh>
+          </group>
         )}
         {bot.status === "paused" && (
-          <group position={[0.085, 0, 0]}>
-            <mesh position={[-0.012, 0, 0]}>
-              <boxGeometry args={[0.01, 0.05, 0.01]} />
+          <group position={[0.1, 0, 0]}>
+            <mesh position={[-0.015, 0, 0]}>
+              <boxGeometry args={[0.012, 0.06, 0.012]} />
               <meshStandardMaterial color={statusStyle.accent} />
             </mesh>
-            <mesh position={[0.012, 0, 0]}>
-              <boxGeometry args={[0.01, 0.05, 0.01]} />
+            <mesh position={[0.015, 0, 0]}>
+              <boxGeometry args={[0.012, 0.06, 0.012]} />
               <meshStandardMaterial color={statusStyle.accent} />
             </mesh>
           </group>
         )}
         {bot.status === "idle" && (
-          <mesh position={[0.085, 0, 0]}>
-            <torusGeometry args={[0.02, 0.006, 8, 20]} />
-            <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.2} />
+          <mesh position={[0.1, 0, 0]}>
+            <torusGeometry args={[0.025, 0.008, 12, 24]} />
+            <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.4} />
           </mesh>
         )}
       </group>
@@ -741,7 +764,7 @@ function NodeCore({
     controls.update();
   }, [zoomTarget]);
 
-  useFrame(() => {
+  useFrame((state, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
     const distance = controls.object.position.distanceTo(controls.target);
@@ -749,6 +772,22 @@ function NodeCore({
       distanceRef.current = distance;
       onZoomDistance(distance);
     }
+
+    const lerp = 1 - Math.exp(-4 * delta);
+    if (selectedBots.length === 1) {
+      const bot = bots.find((b) => b.id === selectedBots[0]);
+      if (bot) {
+        const [tx, ty, tz] = unitSlotPosition(bot.deskSlot ?? 0);
+        controls.target.x += (tx - controls.target.x) * lerp;
+        controls.target.y += (ty + 0.3 - controls.target.y) * lerp;
+        controls.target.z += (tz - controls.target.z) * lerp;
+      }
+    } else {
+      controls.target.x += (0 - controls.target.x) * lerp;
+      controls.target.y += (0 - controls.target.y) * lerp;
+      controls.target.z += (0 - controls.target.z) * lerp;
+    }
+    controls.update();
   });
 
   return (
@@ -1113,154 +1152,97 @@ export default function Page() {
   };
 
   const panelShell =
-    "relative overflow-hidden rounded-2xl border border-white/[0.07] bg-slate-900/50 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_20px_40px_-28px_rgba(0,0,0,0.55)]";
+    "relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/40 backdrop-blur-3xl shadow-[0_0_80px_-20px_rgba(0,0,0,0.8),inset_0_1px_1px_rgba(255,255,255,0.05)]";
   const modeButton =
-    "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] transition duration-200";
+    "rounded-xl px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#0b1220] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#020408] px-4 py-8 font-sans text-slate-100 md:px-10 md:py-12">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,26,38,0.98)_0%,rgba(12,16,27,0.98)_56%,rgba(8,11,19,1)_100%)]" />
-        <div className="absolute left-0 top-0 h-[40%] w-full bg-[radial-gradient(ellipse_at_top,rgba(125,211,252,0.06)_0%,rgba(125,211,252,0.02)_50%,transparent_78%)]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(14,165,233,0.15),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,4,8,0)_0%,rgba(2,4,8,0.8)_100%)]" />
       </div>
 
-      <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
-        <section className={`${panelShell} lg:col-span-12 p-4 md:p-5`}>
-          <div className="relative grid gap-4 lg:grid-cols-12">
-            <div className="lg:col-span-4">
-              <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-100/45">OpsNode · V4</p>
-              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white md:text-3xl">Command Center</h1>
-              <p className="mt-1 text-xs text-slate-400">Live command hierarchy for mission state, roles, and field control.</p>
-            </div>
-            <div className="grid gap-2 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-4">
-              <Card title="Units" value={`${bots.length}`} sub={`${enabledCount} enabled`} compact />
-              <Card title="Running" value={`${runningCount}`} sub="Live execution" compact />
-              <Card title="Paused" value={`${pausedCount}`} sub="Awaiting resume" compact />
-              <Card title="Selected" value={`${selectedCount}`} sub="Command scope" compact />
-            </div>
-            <div className="rounded-xl border border-white/[0.08] bg-black/25 p-3 lg:col-span-3">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Mission State</p>
-              <p className="mt-1 text-xl font-semibold text-white">{missionState}</p>
-              <p className="mt-1 text-xs text-slate-400">Operational integrity {health}% · {disabledCount} disabled</p>
-            </div>
-            <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 lg:col-span-12">
-              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Role Distribution</p>
-              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
-                {(Object.keys(roleCounts) as BotArchetype[]).map((key) => (
-                  <div key={key} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
-                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{ARCHETYPES[key].label}</p>
-                    <p className="text-lg font-semibold text-white">{roleCounts[key]}</p>
-                  </div>
-                ))}
+      <div className="relative mx-auto grid w-full max-w-[1600px] gap-8 lg:grid-cols-12">
+        <header className={`${panelShell} lg:col-span-12 p-6 md:p-8 flex flex-wrap items-center justify-between gap-6`}>
+          <div className="relative">
+            <div className="absolute -left-4 top-1/2 h-12 w-1 -translate-y-1/2 rounded-full bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-cyan-400/60">System Operator · Command</p>
+            <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl uppercase">OpsNode <span className="text-cyan-400">V5</span></h1>
+          </div>
+          <div className="flex flex-wrap gap-4">
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Live Status</p>
+              <div className="mt-1 flex items-center gap-2">
+                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
+                <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Integrity</span>
               </div>
+            </div>
+            <div className="h-10 w-[1px] bg-white/10" />
+            <div className="flex flex-col items-end">
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Node Clusters</p>
+              <p className="mt-1 text-xl font-black text-white">{SQUADS.length}</p>
             </div>
           </div>
-        </section>
+        </header>
 
         <motion.section
-          initial={{ opacity: 0, y: 12 }}
-          animate={{ opacity: 1, y: 0 }}
-          className={`${panelShell} lg:col-span-8 p-5 md:p-7`}
+          initial={{ opacity: 0, scale: 0.98 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ duration: 0.6, ease: "easeOut" }}
+          className={`${panelShell} lg:col-span-8 p-6 md:p-8`}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(125,211,252,0.04)_0%,transparent_50%)]" />
           <div className="relative">
-            <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
+            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-100/35">Primary Stage</p>
-                <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Spatial Command View</h2>
-                <p className="mt-1.5 text-sm text-slate-400">Select, group, and dispatch units from a clean RTS framing.</p>
+                <h2 className="text-xl font-bold uppercase tracking-[0.2em] text-white">Battlefield Projection</h2>
+                <p className="mt-2 text-xs font-medium tracking-widest text-slate-500 uppercase">Interactive Spatial Command Interface</p>
               </div>
-              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-2.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.18em] text-emerald-300/80">
-                Live Telemetry
-              </span>
-            </div>
-
-            <div className="mb-4 inline-flex rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5">
-              <button
-                onClick={() => setViewMode("commander")}
-                className={`${modeButton} ${
-                  viewMode === "commander"
-                    ? "bg-white/10 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Commander
-              </button>
-              <button
-                onClick={() => setViewMode("detail")}
-                className={`${modeButton} ${
-                  viewMode === "detail"
-                    ? "bg-white/10 text-white"
-                    : "text-slate-400 hover:text-slate-200"
-                }`}
-              >
-                Detail
-              </button>
-            </div>
-
-            <div className="relative h-[384px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c1018] shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_20px_50px_-30px_rgba(0,0,0,0.6)]">
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(125,211,252,0.06)_0%,transparent_55%)]" />
-
-              <div className="pointer-events-none absolute left-3 top-3 z-10">
-                <motion.span
-                  key={selectedCount}
-                  initial={{ scale: 0.9, opacity: 0.5 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-slate-200 backdrop-blur-md"
-                >
-                  <Radar size={11} className="text-cyan-300/80" /> {selectedCount} selected
-                </motion.span>
-              </div>
-
-              <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg bg-black/40 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-300 backdrop-blur-md">
-                Orbit · Zoom · Shift+Click multi-select
-              </div>
-
-              <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/45 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.12em] text-slate-300 backdrop-blur-md">
-                <p>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to begin"}</p>
-                <p className="mt-0.5 text-[8px] tracking-[0.08em] text-slate-400">● Idle · ● Running · ● Paused</p>
-              </div>
-
-              <div className="absolute bottom-12 right-3 z-20 w-[180px] rounded-xl bg-black/50 p-2.5 backdrop-blur-xl">
-                <div className="mb-1.5 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-slate-400">
-                  <span>Zoom</span>
-                  <span className="text-slate-300">{zoomPercent}%</span>
-                </div>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={() => setDistanceTarget(cameraDistanceTarget + 0.4)}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-slate-300 transition hover:bg-white/10"
-                    aria-label="Zoom out"
-                  >
-                    <ZoomOut size={12} />
-                  </button>
-                  <input
-                    type="range"
-                    min={MIN_CAMERA_DISTANCE}
-                    max={MAX_CAMERA_DISTANCE}
-                    step={0.05}
-                    value={cameraDistanceTarget}
-                    onChange={(e) => setDistanceTarget(Number(e.target.value))}
-                    className="h-1 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-300"
-                    aria-label="Camera zoom"
-                  />
-                  <button
-                    onClick={() => setDistanceTarget(cameraDistanceTarget - 0.4)}
-                    className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-slate-300 transition hover:bg-white/10"
-                    aria-label="Zoom in"
-                  >
-                    <ZoomIn size={12} />
-                  </button>
-                </div>
+              <div className="flex rounded-2xl bg-black/40 p-1 backdrop-blur-md border border-white/5">
                 <button
-                  onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
-                  className="mt-1.5 w-full rounded-md bg-white/[0.04] px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200"
+                  onClick={() => setViewMode("commander")}
+                  className={`${modeButton} ${
+                    viewMode === "commander"
+                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                      : "text-slate-400 hover:text-white"
+                  }`}
                 >
-                  Reset · {cameraDistance.toFixed(1)}m
+                  Commander
+                </button>
+                <button
+                  onClick={() => setViewMode("detail")}
+                  className={`${modeButton} ${
+                    viewMode === "detail"
+                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                      : "text-slate-400 hover:text-white"
+                  }`}
+                >
+                  Tactical HUD
                 </button>
               </div>
+            </div>
 
-              <Canvas camera={{ position: [0, 0.42, DEFAULT_CAMERA_DISTANCE], fov: 52 }}>
+            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#020408] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.9)]">
+              <div className="pointer-events-none absolute inset-0 z-10 border-[20px] border-black/20" />
+              <div className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]" />
+
+              <div className="pointer-events-none absolute left-8 top-8 z-20">
+                <div className="rounded-lg bg-cyan-500/10 px-4 py-2 backdrop-blur-xl border border-cyan-500/20">
+                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Nodes Tracked</p>
+                  <p className="mt-1 text-2xl font-black text-white leading-none">{bots.length}</p>
+                </div>
+              </div>
+
+              <div className="pointer-events-none absolute right-8 top-8 z-20 flex flex-col items-end gap-2">
+                <div className="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-xl border border-white/5 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Sector: 00-ALPHA
+                </div>
+                <div className="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-xl border border-white/5 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  Enc: AES-256-CMD
+                </div>
+              </div>
+
+              <Canvas camera={{ position: [0, 2, 8], fov: 45 }}>
                 <NodeCore
                   bots={bots}
                   selectedBots={selectedBots}
@@ -1282,128 +1264,125 @@ export default function Page() {
                   onClearSelection={() => setSelectedBots([])}
                 />
               </Canvas>
+
+              <div className="absolute bottom-8 right-8 z-20 w-48 rounded-2xl bg-black/60 p-4 backdrop-blur-2xl border border-white/10">
+                <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
+                  <span>Zoom Level</span>
+                  <span className="text-cyan-400">{zoomPercent}%</span>
+                </div>
+                <input
+                  type="range"
+                  min={MIN_CAMERA_DISTANCE}
+                  max={MAX_CAMERA_DISTANCE}
+                  step={0.05}
+                  value={cameraDistanceTarget}
+                  onChange={(e) => setDistanceTarget(Number(e.target.value))}
+                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-400"
+                />
+                <button
+                  onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
+                  className="mt-3 w-full rounded-lg bg-white/5 py-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 hover:bg-white/10 hover:text-white transition-all"
+                >
+                  Reset Focus
+                </button>
+              </div>
             </div>
 
-            {viewMode === "commander" ? (
-              <div className="mt-4 space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <div className="rounded-xl border border-white/[0.06] bg-slate-950/35 p-3">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Project Squad Lanes</p>
-                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
-                    {squadsView.map((squad) => (
-                      <div key={squad.id} className="rounded-lg border border-white/[0.06] bg-black/25 px-3 py-2">
-                        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-300">{squad.name}</p>
-                        <p className="mt-1 text-[11px] text-cyan-200">Project {squad.projectTag}</p>
-                        <p className="mt-1 text-[11px] text-slate-400">
-                          {squad.members.length}/{SQUAD_SIZE} seats
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <div className="mb-3 flex items-center justify-between">
-                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Squad Loadout</p>
-                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">{selectedCount ? "Manual selection" : "Auto"}</p>
-                  </div>
-
-                  <div className="grid gap-2 sm:grid-cols-2">
-                  {Array.from({ length: 4 }).map((_, i) => {
-                    const bot = loadoutUnits[i];
-                    const slotLabel = ["Alpha", "Bravo", "Charlie", "Delta"][i];
-                    const a = bot ? ARCHETYPES[bot.archetype] : null;
-                    return (
-                      <div
-                        key={slotLabel}
-                        className={`relative overflow-hidden rounded-xl border p-3 ${
-                          bot
-                            ? "border-white/[0.08] bg-slate-900/60"
-                            : "border-white/[0.05] bg-slate-950/30"
-                        }`}
-                      >
-                        {bot && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a?.aura}`} />}
-                        <div className="relative flex items-center gap-3">
-                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
-                            {bot ? <UnitPortrait src={ARCHETYPES[bot.archetype].avatar} alt={bot.name} /> : <span className="text-slate-500 text-xs">—</span>}
-                          </div>
-                          <div>
-                            <p className="text-[9px] uppercase tracking-[0.14em] text-slate-500">{slotLabel}</p>
-                            <p className="text-sm font-medium text-white">{bot ? `[${bot.callsign}]` : "Empty"}</p>
-                            {bot && (
-                              <p className="text-[11px] text-slate-400">
-                                {bot.name} · {a?.label} {bot.tier}
-                              </p>
-                            )}
-                          </div>
-                        </div>
-                      </div>
-                    );
-                  })}
-                  </div>
-                </div>
-              </div>
-            ) : (
-              <div className="mt-4 grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:grid-cols-2">
-                <div className="rounded-xl border border-white/[0.06] bg-slate-950/50 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Selected Unit</p>
-                  {selected && (
-                    <div className="mt-2 h-20 w-full overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
-                      <UnitPortrait src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full object-cover" />
+            {viewMode === "detail" && selected && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                animate={{ opacity: 1, x: 0 }}
+                className="mt-8 grid gap-6 md:grid-cols-2"
+              >
+                <div className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
+                  <div className="flex items-center gap-6">
+                    <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-500/30 bg-black/40 p-1">
+                      <UnitPortrait src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full object-cover rounded-xl" />
                     </div>
-                  )}
-                  <p className="mt-2 text-xl font-semibold text-white">{selected ? `[${selected.callsign}]` : "-"}</p>
-                  <p className="mt-1 text-xs text-slate-400">{selected ? `${selected.name} · ${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}</p>
-                  <p className="mt-0.5 text-[11px] text-slate-500">
-                    {selected?.provider} · {selected?.model}
-                  </p>
-                  <p className="mt-0.5 text-[11px] text-cyan-200/80">
-                    {(SQUADS.find((s) => s.id === selected?.squadId) ?? SQUADS[0]).name} · Project {selected?.projectTag}
-                  </p>
-                </div>
-                <div className="grid gap-2">
-                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-slate-950/50 px-3 py-2.5 text-xs text-slate-300">
-                    <CheckCircle2 size={14} className="text-emerald-400/70" />
-                    Command integrity: {health}%
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Operator Profile</p>
+                      <h3 className="mt-1 text-2xl font-black text-white tracking-tight uppercase">[{selected.callsign}]</h3>
+                      <p className="text-sm font-medium tracking-widest text-slate-400 uppercase">{selected.name}</p>
+                    </div>
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-slate-950/50 px-3 py-2.5 text-xs text-slate-300">
-                    <Clock3 size={14} className="text-slate-400" />
-                    Last event: {selected?.lastRun || "-"}
+                  <div className="mt-6 grid grid-cols-2 gap-4">
+                    <div className="rounded-xl bg-black/40 p-3 border border-white/5">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Archetype</p>
+                      <p className="mt-1 text-sm font-bold text-white uppercase">{selected.archetype}</p>
+                    </div>
+                    <div className="rounded-xl bg-black/40 p-3 border border-white/5">
+                      <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">Integrity Tier</p>
+                      <p className="mt-1 text-sm font-bold text-cyan-400">TIER {selected.tier}</p>
+                    </div>
                   </div>
                 </div>
-              </div>
+                <div className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6 flex flex-col justify-between">
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Model Pipeline</span>
+                      <span className="text-[10px] font-bold text-white tracking-widest">{selected.model}</span>
+                    </div>
+                    <div className="h-1 w-full bg-white/5 rounded-full overflow-hidden">
+                      <div className="h-full bg-cyan-500 w-[85%] shadow-[0_0_10px_rgba(6,182,212,0.8)]" />
+                    </div>
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Last Telemetry</span>
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{selected.lastRun}</span>
+                    </div>
+                  </div>
+                  <div className="mt-6 flex gap-2">
+                    <button className="flex-1 rounded-xl bg-white/5 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all border border-white/10">Diagnostic</button>
+                    <button className="flex-1 rounded-xl bg-cyan-500 py-3 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-950 hover:brightness-110 transition-all shadow-[0_0_20px_rgba(6,182,212,0.3)]">Resync</button>
+                  </div>
+                </div>
+              </motion.div>
             )}
           </div>
         </motion.section>
 
-        <section className="grid gap-4 lg:col-span-4">
-          <Card title="Operational" value={`${health}%`} sub={`${runningCount} running · ${pausedCount} paused`} />
-          <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Mission Queue</p>
-            <ul className="mt-2 space-y-1.5 text-xs text-slate-300">
-              {missionQueue.map((item) => (
-                <li key={item} className="rounded-md border border-white/[0.04] bg-black/20 px-2 py-1.5">
+        <section className="grid gap-6 lg:col-span-4">
+          <Card title="Operational Status" value={`${health}%`} sub={`${runningCount} Active · ${pausedCount} Holding`} />
+          <div className={`${panelShell} p-6`}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Mission Queue</p>
+            <ul className="mt-4 space-y-3">
+              {missionQueue.map((item, i) => (
+                <li key={i} className="flex items-center gap-3 rounded-xl border border-white/5 bg-black/20 p-3 text-[10px] font-bold uppercase tracking-widest text-slate-300">
+                  <div className="h-1.5 w-1.5 rounded-full bg-cyan-500" />
                   {item}
                 </li>
               ))}
             </ul>
           </div>
-          <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
-            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Status Legend</p>
-            <div className="mt-2 grid gap-2 text-xs">
-              <p className="rounded-md border border-emerald-400/20 bg-emerald-500/8 px-2 py-1 text-emerald-200">Running: actively executing tasks</p>
-              <p className="rounded-md border border-amber-400/20 bg-amber-500/8 px-2 py-1 text-amber-200">Paused: held for command input</p>
-              <p className="rounded-md border border-slate-400/20 bg-slate-500/8 px-2 py-1 text-slate-300">Idle: ready but not currently executing</p>
+          <div className={`${panelShell} p-6`}>
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Tactical Legend</p>
+            <div className="mt-4 space-y-2">
+              <div className="flex items-center justify-between rounded-xl bg-emerald-500/5 p-3 border border-emerald-500/10">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-emerald-400">Active</span>
+                <span className="h-2 w-2 rounded-full bg-emerald-400" />
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-amber-500/5 p-3 border border-amber-500/10">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-amber-400">Holding</span>
+                <span className="h-2 w-2 rounded-full bg-amber-400" />
+              </div>
+              <div className="flex items-center justify-between rounded-xl bg-slate-500/5 p-3 border border-white/5">
+                <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Standby</span>
+                <span className="h-2 w-2 rounded-full bg-slate-400" />
+              </div>
             </div>
           </div>
-          <Card title="Gateway" value="Bound" sub="/api/gateway-action wired" />
+          <div className="group relative overflow-hidden rounded-[2rem] border border-cyan-500/20 bg-cyan-500/5 p-6 backdrop-blur-3xl">
+            <div className="absolute -right-4 -top-4 h-24 w-24 rounded-full bg-cyan-500/10 blur-2xl transition-all group-hover:bg-cyan-500/20" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-400/60">Gateway Protocol</p>
+            <p className="mt-2 text-2xl font-black text-white uppercase tracking-tight">Encrypted</p>
+            <p className="mt-1 text-[10px] font-bold uppercase tracking-widest text-slate-500">Bound to /api/gateway</p>
+          </div>
         </section>
 
-        <section className={`${panelShell} lg:col-span-8 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
+        <section className={`${panelShell} lg:col-span-8 p-6 md:p-8`}>
           <div className="relative">
-            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-xl font-semibold tracking-tight text-white">Roster</h2>
-              <div className="flex flex-wrap gap-2">
+            <div className="mb-8 flex flex-wrap items-center justify-between gap-4">
+              <h2 className="text-xl font-bold uppercase tracking-[0.2em] text-white">Node Roster</h2>
+              <div className="flex gap-3">
                 <button
                   onClick={() => {
                     setRecruitDraft((prev) => {
@@ -1417,118 +1396,106 @@ export default function Page() {
                     });
                     setShowRecruitMenu(true);
                   }}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.3)] hover:brightness-110 transition-all"
                 >
-                  <Swords size={14} /> Recruit Menu
+                  <Swords size={14} /> Recruit Unit
                 </button>
                 <button
                   onClick={rollback}
-                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:bg-slate-700/50"
+                  className="inline-flex items-center gap-2 rounded-xl bg-white/5 px-6 py-2.5 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all border border-white/10"
                 >
-                  <RotateCcw size={14} /> Rollback
+                  <RotateCcw size={14} /> Restore
                 </button>
               </div>
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-slate-900/30 p-2 text-xs">
-              <motion.span
-                key={selectedCount}
-                initial={{ scale: 0.9, opacity: 0.6 }}
-                animate={{ scale: 1, opacity: 1 }}
-                className="rounded-md bg-white/[0.05] px-2 py-1 text-slate-300"
-              >
-                {selectedCount} selected
-              </motion.span>
-              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("enable")} tone="emerald">
-                Enable
-              </BatchButton>
-              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("disable")} tone="rose">
-                Disable
-              </BatchButton>
-              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("pause")} tone="amber">
-                Pause
-              </BatchButton>
-              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("resume")} tone="cyan">
-                Resume
-              </BatchButton>
+            <div className="mb-6 flex flex-wrap items-center gap-3 rounded-2xl border border-white/5 bg-black/40 p-3 backdrop-blur-xl">
+              <div className="px-3 py-1 text-[10px] font-black uppercase tracking-[0.2em] text-cyan-400 border-r border-white/10">
+                {selectedCount} Selected
+              </div>
+              <div className="flex gap-2">
+                <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("enable")} tone="emerald">Enable</BatchButton>
+                <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("disable")} tone="rose">Disable</BatchButton>
+                <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("pause")} tone="amber">Pause</BatchButton>
+                <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("resume")} tone="cyan">Resume</BatchButton>
+              </div>
               <button
                 onClick={() => setSelectedBots([])}
                 disabled={!selectedCount}
-                className="rounded-lg border border-white/10 px-2 py-1 text-slate-400 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
+                className="ml-auto rounded-lg px-3 py-1 text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500 hover:text-white transition-all disabled:opacity-0"
               >
-                Clear
+                Reset Selection
               </button>
             </div>
 
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-4 md:grid-cols-2">
               {bots.map((b) => {
                 const batchSelected = selectedBots.includes(b.id);
                 const a = ARCHETYPES[b.archetype];
                 const squad = SQUADS.find((s) => s.id === b.squadId) ?? SQUADS[0];
                 const seat = Number.isInteger(b.deskSlot) ? ((b.deskSlot as number) % SQUAD_SIZE) + 1 : 1;
+                const statusInfo = STATUS_STYLE[b.status];
 
                 return (
                   <motion.div
-                    whileHover={{ y: -2 }}
-                    transition={{ duration: 0.18 }}
+                    whileHover={{ scale: 1.02, y: -4 }}
                     key={b.id}
-                    className={`relative overflow-hidden rounded-xl border p-3.5 transition ${
+                    className={`group relative overflow-hidden rounded-3xl border p-5 transition-all duration-300 ${
                       selectedId === b.id
-                        ? "border-white/[0.12] bg-slate-900/70 shadow-[0_0_16px_-10px_rgba(34,211,238,0.4)]"
-                        : "border-white/[0.06] bg-slate-950/40 hover:border-white/[0.1] hover:bg-slate-900/50"
-                    } ${batchSelected ? "ring-1 ring-violet-300/25" : ""}`}
+                        ? "border-cyan-500/50 bg-slate-900/60 shadow-[0_0_40px_-10px_rgba(6,182,212,0.3)]"
+                        : "border-white/5 bg-slate-950/40 hover:border-white/20 hover:bg-slate-900/40"
+                    }`}
                   >
-                    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
-                    <div className="relative mb-2 flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-2.5">
-                        <input
-                          type="checkbox"
-                          checked={batchSelected}
-                          onChange={() => toggleBotSelection(b.id)}
-                          className="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-900 text-cyan-300"
-                        />
-                        <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
-                          <UnitPortrait src={ARCHETYPES[b.archetype].avatar} alt={b.name} />
+                    <div className={`pointer-events-none absolute inset-0 opacity-20 transition-opacity group-hover:opacity-40 bg-gradient-to-br ${a.aura}`} />
+                    <div className="relative mb-4 flex items-start justify-between">
+                      <div className="flex items-center gap-4">
+                        <div className="relative">
+                          <input
+                            type="checkbox"
+                            checked={batchSelected}
+                            onChange={() => toggleBotSelection(b.id)}
+                            className="absolute -left-2 -top-2 z-20 h-5 w-5 rounded-full border-2 border-slate-700 bg-slate-950 text-cyan-500 transition-all checked:border-cyan-500"
+                          />
+                          <div className="h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-1 shadow-2xl">
+                            <UnitPortrait src={ARCHETYPES[b.archetype].avatar} alt={b.name} className="h-full w-full object-cover rounded-xl" />
+                          </div>
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                          <p className="text-sm font-semibold text-white">[{b.callsign}]</p>
-                          <p className="text-[11px] text-slate-400">{b.name} · {a.label}</p>
-                          <p className="text-[10px] text-cyan-200/85">
-                            {squad.name} · {b.projectTag || squad.projectTag} · Seat {seat}
-                          </p>
+                          <p className="text-sm font-black text-white uppercase tracking-tight">[{b.callsign}]</p>
+                          <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">{b.name} · {a.label}</p>
                         </button>
                       </div>
-                      <div className="flex items-center gap-1.5">
-                        <span className={`rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] ${a.chip}`}>
-                          {b.tier}
+                      <div className="flex flex-col items-end gap-1.5">
+                        <span className={`rounded-lg px-2 py-0.5 text-[8px] font-black uppercase tracking-widest shadow-lg ${a.chip}`}>
+                          Tier {b.tier}
                         </span>
-                        <span
-                          className={`rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] ${
-                            b.status === "running"
-                              ? "bg-emerald-500/12 text-emerald-300"
-                              : b.status === "paused"
-                                ? "bg-amber-500/12 text-amber-300"
-                                : "bg-slate-500/15 text-slate-400"
-                          }`}
-                        >
-                          {b.status}
-                        </span>
+                        <div className="flex items-center gap-1.5 rounded-lg bg-black/40 px-2 py-0.5 border border-white/5">
+                          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: statusInfo.color, boxShadow: `0 0 8px ${statusInfo.glow}` }} />
+                          <span className="text-[8px] font-black uppercase tracking-widest text-slate-300">{b.status}</span>
+                        </div>
                       </div>
                     </div>
 
-                    <div className="relative mb-2.5 text-[10px] text-slate-500">
-                      {a.role} · {b.provider} · {b.model}
+                    <div className="relative mb-6 rounded-xl bg-black/20 p-3 border border-white/5">
+                      <div className="flex justify-between text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        <span>Squad / Project</span>
+                        <span className="text-cyan-400">{squad.name} / {b.projectTag || squad.projectTag}</span>
+                      </div>
+                      <div className="mt-2 flex justify-between text-[9px] font-bold uppercase tracking-widest text-slate-500">
+                        <span>Seat Allocation</span>
+                        <span className="text-white">NODE-{seat.toString().padStart(2, '0')}</span>
+                      </div>
                     </div>
 
-                    <div className="relative flex flex-wrap gap-1.5">
+                    <div className="relative flex gap-2">
                       <button
                         onClick={() => {
                           setSelectedId(b.id);
                           setShowConfig(true);
                         }}
-                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
+                        className="flex-1 rounded-xl bg-white/5 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all border border-white/10"
                       >
-                        <Settings size={12} /> Loadout
+                        Loadout
                       </button>
                       <button
                         onClick={() => {
@@ -1539,25 +1506,15 @@ export default function Page() {
                           );
                           persist(next);
                         }}
-                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
+                        className="flex-1 rounded-xl bg-white/5 py-2 text-[9px] font-black uppercase tracking-widest text-white hover:bg-white/10 transition-all border border-white/10"
                       >
-                        {b.status === "paused" ? <Play size={12} /> : <Pause size={12} />}
                         {b.status === "paused" ? "Resume" : "Pause"}
                       </button>
                       <button
-                        onClick={() => {
-                          const next = bots.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x));
-                          persist(next);
-                        }}
-                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
-                      >
-                        <Power size={12} /> {b.enabled ? "Disable" : "Enable"}
-                      </button>
-                      <button
                         onClick={() => deleteBot(b.id)}
-                        className="inline-flex items-center gap-1 rounded-md border border-rose-400/10 bg-rose-500/[0.04] px-2 py-1 text-[11px] text-rose-300/70 transition hover:bg-rose-500/10"
+                        className="rounded-xl bg-rose-500/10 px-3 py-2 text-rose-500 hover:bg-rose-500 hover:text-white transition-all border border-rose-500/20"
                       >
-                        <Trash2 size={12} /> Delete
+                        <Trash2 size={14} />
                       </button>
                     </div>
                   </motion.div>
@@ -1567,57 +1524,64 @@ export default function Page() {
           </div>
         </section>
 
-        <section className={`${panelShell} lg:col-span-4 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
+        <section className={`${panelShell} lg:col-span-4 p-6 md:p-8`}>
           <div className="relative">
-            <h2 className="text-xl font-semibold tracking-tight text-white">Quick Actions</h2>
-            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">Gateway Dispatch</p>
-            <div className="mt-4 space-y-2">
+            <h2 className="text-xl font-bold uppercase tracking-[0.2em] text-white">Global Directives</h2>
+            <div className="mt-8 space-y-4">
               <button
                 onClick={() => sendGatewayAction("summon")}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:brightness-110"
+                className="group relative flex w-full flex-col items-center gap-1 overflow-hidden rounded-2xl bg-cyan-500 py-4 shadow-[0_0_30px_rgba(6,182,212,0.2)] hover:brightness-110 transition-all"
               >
-                <Activity size={15} /> Summon All
+                <div className="absolute inset-0 bg-[linear-gradient(45deg,transparent_25%,rgba(255,255,255,0.2)_50%,transparent_75%)] bg-[length:250%_250%] transition-all duration-700 group-hover:bg-[position:100%_100%]" />
+                <Activity size={20} className="text-slate-950" />
+                <span className="text-[10px] font-black uppercase tracking-[0.3em] text-slate-950">Summon All Nodes</span>
               </button>
               <button
                 onClick={() => sendGatewayAction("reset")}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all"
               >
-                <Brain size={15} /> Reset Context
+                <Brain size={18} /> Reset All Contexts
               </button>
               <button
                 onClick={() => setShowConfig(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
+                className="flex w-full items-center justify-center gap-3 rounded-2xl border border-white/10 bg-white/5 py-4 text-[10px] font-black uppercase tracking-[0.2em] text-white hover:bg-white/10 transition-all"
               >
-                <Shield size={15} /> Open Loadout
+                <Shield size={18} /> Global Security Policy
               </button>
             </div>
-            <p className="mt-3 rounded-md bg-white/[0.03] px-3 py-2 text-[11px] text-slate-500">
-              {gatewayMsg || "Gateway ready"}
-            </p>
+            <div className="mt-8 rounded-2xl bg-black/40 p-4 border border-white/5">
+              <p className="text-[9px] font-bold uppercase tracking-[0.2em] text-slate-500">System Logs</p>
+              <p className="mt-2 font-mono text-[10px] text-cyan-400/80">
+                {gatewayMsg ? `> ${gatewayMsg.toUpperCase()}` : "> WAITING FOR DIRECTIVE..."}
+              </p>
+            </div>
           </div>
         </section>
       </div>
 
       {showRecruitMenu && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
-          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-950/95 p-5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-5xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-slate-950 p-8 shadow-[0_0_100px_rgba(0,0,0,1)]"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.1),transparent_70%)]" />
             <div className="relative">
-              <div className="mb-5 flex items-center justify-between">
+              <div className="mb-8 flex items-center justify-between">
                 <div>
-                  <h3 className="text-xl font-semibold tracking-tight text-white">Recruit Menu</h3>
-                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">Choose archetype, project squad lane, and operational profile</p>
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-white">Recruitment Protocol</h3>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">Initialize new node operator into command hierarchy</p>
                 </div>
                 <button
-                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
+                  className="rounded-xl border border-white/10 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all hover:bg-white/5 hover:text-white"
                   onClick={() => setShowRecruitMenu(false)}
                 >
-                  Close
+                  Terminate
                 </button>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+              <div className="grid gap-4 md:grid-cols-4">
                 {(Object.keys(ARCHETYPES) as BotArchetype[]).map((key) => {
                   const a = ARCHETYPES[key];
                   const active = recruitDraft.archetype === key;
@@ -1631,34 +1595,34 @@ export default function Page() {
                           callsign: prev.callsign || nextAvailableCallsign(key, bots),
                         }))
                       }
-                      className={`relative overflow-hidden rounded-2xl border p-4 text-left transition ${
+                      className={`group relative overflow-hidden rounded-3xl border p-4 text-left transition-all duration-300 ${
                         active
-                          ? "border-cyan-300/45 bg-slate-900/80 shadow-[0_0_20px_-14px_rgba(34,211,238,0.9)]"
-                          : "border-white/10 bg-slate-900/45 hover:border-cyan-200/30"
+                          ? "border-cyan-500/50 bg-slate-900 shadow-[0_0_30px_rgba(6,182,212,0.2)]"
+                          : "border-white/5 bg-slate-950 hover:border-white/20"
                       }`}
                     >
-                      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
+                      <div className={`pointer-events-none absolute inset-0 opacity-10 group-hover:opacity-20 transition-opacity bg-gradient-to-br ${a.aura}`} />
                       <div className="relative">
-                        <div className="h-24 w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950/70">
-                          <UnitPortrait src={a.avatar} alt={a.label} className="h-full w-full object-cover" />
+                        <div className="h-32 w-full overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-1">
+                          <UnitPortrait src={a.avatar} alt={a.label} className="h-full w-full object-cover rounded-xl" />
                         </div>
-                        <p className={`mt-2 text-base font-semibold ${a.tone}`}>{a.label}</p>
-                        <p className="mt-1 text-xs text-slate-300">{a.role}</p>
+                        <p className={`mt-4 text-sm font-black uppercase tracking-widest ${a.tone}`}>{a.label}</p>
+                        <p className="mt-1 text-[10px] font-bold text-slate-500 uppercase leading-relaxed">{a.role}</p>
                       </div>
                     </button>
                   );
                 })}
               </div>
 
-              <div className="mt-4 grid gap-3 md:grid-cols-2">
+              <div className="mt-8 grid gap-4 md:grid-cols-3">
                 <Field
-                  label="Callsign"
+                  label="Designation (Callsign)"
                   value={recruitDraft.callsign}
                   onChange={(v) => setRecruitDraft((p) => ({ ...p, callsign: normalizeCallsign(v) }))}
                 />
-                <Field label="Operator Name" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
+                <Field label="Operator Legal Name" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
                 <SelectField
-                  label="Squad Lane"
+                  label="Squad Assignment"
                   value={recruitDraft.squadId}
                   options={["auto", ...SQUADS.map((s) => s.id)]}
                   onChange={(v) =>
@@ -1670,139 +1634,105 @@ export default function Page() {
                   }
                 />
                 <Field
-                  label="Project Tag"
+                  label="Project Authorization"
                   value={recruitDraft.projectTag}
                   onChange={(v) => setRecruitDraft((p) => ({ ...p, projectTag: normalizeProjectTag(v) }))}
                 />
                 <SelectField
-                  label="Tier"
+                  label="Integrity Tier"
                   value={recruitDraft.tier}
                   options={["I", "II", "III"]}
                   onChange={(v) => setRecruitDraft((p) => ({ ...p, tier: v as BotTier }))}
                 />
                 <SelectField
-                  label="Provider"
+                  label="Compute Provider"
                   value={recruitDraft.provider}
                   options={["openai-codex", "google-gemini-cli"]}
                   onChange={(v) => setRecruitDraft((p) => ({ ...p, provider: v as BotConfig["provider"] }))}
                 />
-                <Field label="Model" value={recruitDraft.model} onChange={(v) => setRecruitDraft((p) => ({ ...p, model: v }))} />
-                <SelectField
-                  label="Thinking"
-                  value={recruitDraft.thinking}
-                  options={["low", "medium", "high"]}
-                  onChange={(v) => setRecruitDraft((p) => ({ ...p, thinking: v as BotConfig["thinking"] }))}
-                />
-                <SelectField
-                  label="Priority"
-                  value={recruitDraft.priority}
-                  options={["low", "med", "high"]}
-                  onChange={(v) => setRecruitDraft((p) => ({ ...p, priority: v as BotConfig["priority"] }))}
-                />
-                <Field
-                  label="Schedule"
-                  value={recruitDraft.schedule}
-                  onChange={(v) => setRecruitDraft((p) => ({ ...p, schedule: v }))}
-                />
-                <Field
-                  label="Channel"
-                  value={recruitDraft.channel}
-                  onChange={(v) => setRecruitDraft((p) => ({ ...p, channel: v }))}
-                />
-                <div className="md:col-span-2">
-                  <Field
-                    label="Allowed Tools"
-                    value={recruitDraft.allowedTools}
-                    onChange={(v) => setRecruitDraft((p) => ({ ...p, allowedTools: v }))}
-                  />
-                </div>
               </div>
 
-              <div className="mt-5 flex justify-end gap-2">
+              <div className="mt-10 flex justify-end">
                 <button
                   onClick={recruitBot}
-                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:brightness-110"
+                  className="inline-flex items-center gap-3 rounded-2xl bg-cyan-500 px-10 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-950 shadow-[0_0_40px_rgba(6,182,212,0.4)] hover:brightness-110 transition-all"
                 >
-                  <Swords size={14} /> Recruit Unit
+                  <Swords size={16} /> Deploy Node
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {showConfig && selected && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-950/95 p-5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/80 p-4 backdrop-blur-md">
+          <motion.div
+            initial={{ opacity: 0, scale: 0.9, y: 20 }}
+            animate={{ opacity: 1, scale: 1, y: 0 }}
+            className="relative w-full max-w-4xl overflow-hidden rounded-[2.5rem] border border-white/10 bg-slate-950 p-8 shadow-[0_0_100px_rgba(0,0,0,1)]"
+          >
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_0%,rgba(14,165,233,0.1),transparent_70%)]" />
             <div className="relative">
-              <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-xl font-semibold tracking-tight text-white">Loadout · [{selected.callsign}]</h3>
+              <div className="mb-8 flex items-center justify-between">
+                <div>
+                  <h3 className="text-2xl font-black uppercase tracking-tight text-white">Node Loadout · [{selected.callsign}]</h3>
+                  <p className="mt-2 text-xs font-bold uppercase tracking-widest text-slate-500">Modify operational parameters and field capabilities</p>
+                </div>
                 <button
-                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
+                  className="rounded-xl border border-white/10 px-6 py-2 text-[10px] font-black uppercase tracking-widest text-slate-400 transition-all hover:bg-white/5 hover:text-white"
                   onClick={() => setShowConfig(false)}
                 >
                   Close
                 </button>
               </div>
 
-              <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Callsign" value={selected.callsign} onChange={(v) => updateBot({ callsign: v })} />
+              <div className="grid gap-4 md:grid-cols-3">
+                <Field label="Designation" value={selected.callsign} onChange={(v) => updateBot({ callsign: v })} />
                 <Field label="Operator Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
                 <SelectField
-                  label="Squad"
+                  label="Squad Assignment"
                   value={selected.squadId || SQUADS[0].id}
                   options={SQUADS.map((s) => s.id)}
                   onChange={(v) => updateBot({ squadId: v })}
                 />
-                <Field label="Project Tag" value={selected.projectTag || ""} onChange={(v) => updateBot({ projectTag: v })} />
+                <Field label="Project Authorization" value={selected.projectTag || ""} onChange={(v) => updateBot({ projectTag: v })} />
                 <SelectField
                   label="Archetype"
                   value={selected.archetype}
                   options={["sentinel", "sniper", "analyst", "medic"]}
                   onChange={(v) => updateBot({ archetype: v as BotArchetype })}
                 />
-                <SelectField label="Tier" value={selected.tier} options={["I", "II", "III"]} onChange={(v) => updateBot({ tier: v as BotTier })} />
-                <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
+                <SelectField label="Integrity Tier" value={selected.tier} options={["I", "II", "III"]} onChange={(v) => updateBot({ tier: v as BotTier })} />
+                <Field label="Compute Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
                 <SelectField
-                  label="Provider"
+                  label="Compute Provider"
                   value={selected.provider}
                   options={["openai-codex", "google-gemini-cli"]}
                   onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })}
                 />
                 <SelectField
-                  label="Thinking"
+                  label="Thinking Density"
                   value={selected.thinking}
                   options={["low", "medium", "high"]}
                   onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })}
                 />
-                <SelectField
-                  label="Priority"
-                  value={selected.priority}
-                  options={["low", "med", "high"]}
-                  onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })}
-                />
-                <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
-                <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
-                <div className="md:col-span-2">
-                  <Field label="Allowed Tools" value={selected.allowedTools} onChange={(v) => updateBot({ allowedTools: v })} />
-                </div>
               </div>
 
-              <div className="mt-5 flex justify-end gap-2">
+              <div className="mt-10 flex justify-end">
                 <button
                   onClick={() => {
                     saveSnapshot(bots);
                     persist(bots);
                     setShowConfig(false);
                   }}
-                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:brightness-110"
+                  className="inline-flex items-center gap-3 rounded-2xl bg-cyan-500 px-10 py-4 text-xs font-black uppercase tracking-[0.2em] text-slate-950 shadow-[0_0_40px_rgba(6,182,212,0.4)] hover:brightness-110 transition-all"
                 >
-                  <Save size={14} /> Save Loadout
+                  <Save size={16} /> Update Loadout
                 </button>
               </div>
             </div>
-          </div>
+          </motion.div>
         </div>
       )}
     </main>
@@ -1825,10 +1755,11 @@ function Card({
   compact?: boolean;
 }) {
   return (
-    <div className={`relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 backdrop-blur-xl ${compact ? "p-3" : "p-4"}`}>
-      <p className={`uppercase tracking-[0.22em] text-slate-400 ${compact ? "text-[9px]" : "text-[10px]"}`}>{title}</p>
-      <p className={`font-semibold tracking-tight text-white ${compact ? "mt-1 text-2xl" : "mt-2 text-3xl"}`}>{value}</p>
-      <p className={`text-slate-400 ${compact ? "mt-0.5 text-[11px]" : "mt-1 text-xs"}`}>{sub}</p>
+    <div className={`group relative overflow-hidden rounded-[2rem] border border-white/10 bg-slate-950/40 backdrop-blur-3xl transition-all duration-300 hover:border-cyan-500/30 ${compact ? "p-4" : "p-6"}`}>
+      <div className="absolute -right-8 -top-8 h-24 w-24 rounded-full bg-white/5 blur-3xl transition-all group-hover:bg-cyan-500/10" />
+      <p className={`font-bold uppercase tracking-[0.3em] text-slate-500 ${compact ? "text-[8px]" : "text-[10px]"}`}>{title}</p>
+      <p className={`font-black tracking-tight text-white uppercase ${compact ? "mt-2 text-3xl" : "mt-4 text-5xl"}`}>{value}</p>
+      <p className={`font-bold uppercase tracking-widest text-cyan-400/60 ${compact ? "mt-1 text-[9px]" : "mt-2 text-[10px]"}`}>{sub}</p>
     </div>
   );
 }
@@ -1846,18 +1777,18 @@ function BatchButton({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-300/20 text-emerald-200 hover:bg-emerald-500/8"
+      ? "border-emerald-500/20 text-emerald-400 hover:bg-emerald-500 hover:text-slate-950"
       : tone === "rose"
-        ? "border-rose-300/20 text-rose-200 hover:bg-rose-500/8"
+        ? "border-rose-500/20 text-rose-400 hover:bg-rose-500 hover:text-white"
         : tone === "amber"
-          ? "border-amber-300/20 text-amber-200 hover:bg-amber-500/8"
-          : "border-cyan-300/20 text-cyan-200 hover:bg-cyan-500/8";
+          ? "border-amber-500/20 text-amber-400 hover:bg-amber-500 hover:text-slate-950"
+          : "border-cyan-500/20 text-cyan-400 hover:bg-cyan-500 hover:text-slate-950";
 
   return (
     <button
       onClick={onClick}
       disabled={disabled}
-      className={`rounded-lg border px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClass}`}
+      className={`rounded-xl border px-4 py-1.5 text-[10px] font-black uppercase tracking-widest transition-all disabled:opacity-20 disabled:cursor-not-allowed ${toneClass}`}
     >
       {children}
     </button>
@@ -1866,12 +1797,12 @@ function BatchButton({
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <label className="block text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
-      {label}
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{label}</span>
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-cyan-300/45 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.1)]"
+        className="mt-2 w-full rounded-2xl border border-white/5 bg-black/40 px-5 py-3 text-sm font-medium text-white shadow-inner outline-none transition-all focus:border-cyan-500/50 focus:bg-black/60 focus:shadow-[0_0_20px_rgba(6,182,212,0.1)]"
       />
     </label>
   );
@@ -1889,16 +1820,16 @@ function SelectField({
   onChange: (v: string) => void;
 }) {
   return (
-    <label className="block text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
-      {label}
+    <label className="block">
+      <span className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">{label}</span>
       <select
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-cyan-300/45 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.1)]"
+        className="mt-2 w-full rounded-2xl border border-white/5 bg-black/40 px-5 py-3 text-sm font-medium text-white shadow-inner outline-none transition-all focus:border-cyan-500/50 focus:bg-black/60 focus:shadow-[0_0_20px_rgba(6,182,212,0.1)] appearance-none cursor-pointer"
       >
         {options.map((option) => (
-          <option key={option} value={option}>
-            {option}
+          <option key={option} value={option} className="bg-slate-950 text-white">
+            {option.toUpperCase()}
           </option>
         ))}
       </select>
