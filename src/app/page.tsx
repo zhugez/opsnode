@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Canvas } from "@react-three/fiber";
-import { OrbitControls, Sphere, MeshDistortMaterial, Float, Line } from "@react-three/drei";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
+import { OrbitControls, Float, Line } from "@react-three/drei";
+import { Group } from "three";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -157,48 +158,75 @@ function resolveAvatar(avatar: string | undefined, archetype: BotArchetype) {
   return avatar;
 }
 
-function NodeCore() {
-  const points: [number, number, number][] = [
-    [-1.9, 0.9, -0.8],
-    [-0.9, 0.25, 0.45],
-    [0, 0, 0],
-    [0.95, -0.3, -0.45],
-    [1.85, 0.8, 0.75],
+function OfficeCommandScene() {
+  const cableRun: [number, number, number][] = [
+    [-1.6, 0.12, 0.3],
+    [-0.8, 0.16, 0.1],
+    [0, 0.14, 0],
+    [0.8, 0.16, -0.1],
+    [1.6, 0.12, -0.3],
   ];
 
   return (
     <>
-      <ambientLight intensity={0.42} />
-      <pointLight position={[2.4, 2.1, 2.5]} intensity={1.1} color="#6fe8ff" />
-      <pointLight position={[-2.1, -1.2, 1.2]} intensity={0.65} color="#4b63ff" />
-      <Float speed={0.95} rotationIntensity={0.25} floatIntensity={0.48}>
-        <Sphere args={[1.06, 64, 64]}>
-          <MeshDistortMaterial
-            color="#78d9ff"
-            emissive="#17485f"
-            emissiveIntensity={0.65}
-            roughness={0.14}
-            metalness={0.38}
-            distort={0.17}
-            speed={1.35}
-          />
-        </Sphere>
-      </Float>
-      <Float speed={0.7} rotationIntensity={0.2} floatIntensity={0.35}>
-        <mesh rotation={[Math.PI / 2.15, 0, 0]}>
-          <torusGeometry args={[1.62, 0.014, 20, 160]} />
-          <meshStandardMaterial color="#82dfff" emissive="#1d3f5e" emissiveIntensity={0.55} />
-        </mesh>
-      </Float>
-      <Line points={points} color="#8fcbff" lineWidth={1} transparent opacity={0.52} />
-      <Line points={[points[0], points[2], points[4]]} color="#c5eaff" lineWidth={0.7} transparent opacity={0.35} />
-      {points.map((p, i) => (
-        <mesh key={i} position={p}>
-          <sphereGeometry args={[i === 2 ? 0.07 : 0.05, 16, 16]} />
-          <meshStandardMaterial color="#dff4ff" emissive="#7cdcff" emissiveIntensity={0.7} />
-        </mesh>
+      <color attach="background" args={["#0f172a"]} />
+      <ambientLight intensity={0.62} />
+      <directionalLight position={[4, 5, 2]} intensity={1.15} color="#d8ecff" />
+      <pointLight position={[0, 2.2, 1.4]} intensity={0.75} color="#7dd3fc" />
+      <pointLight position={[0, 0.9, -2.2]} intensity={0.5} color="#6366f1" />
+
+      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[8, 6]} />
+        <meshStandardMaterial color="#192538" roughness={0.86} metalness={0.08} />
+      </mesh>
+
+      <mesh position={[0, 1.0, -2.35]}>
+        <boxGeometry args={[6.4, 2.8, 0.08]} />
+        <meshStandardMaterial color="#1e2e45" roughness={0.3} metalness={0.2} />
+      </mesh>
+
+      <mesh position={[0, 0.07, -0.25]}>
+        <boxGeometry args={[2.6, 0.14, 1.24]} />
+        <meshStandardMaterial color="#2b3c57" roughness={0.34} metalness={0.48} />
+      </mesh>
+
+      {[-0.85, -0.28, 0.28, 0.85].map((x, i) => (
+        <group key={i} position={[x, 0.38, -0.72]}>
+          <mesh>
+            <boxGeometry args={[0.46, 0.28, 0.03]} />
+            <meshStandardMaterial color="#7dd3fc" emissive="#0e4f73" emissiveIntensity={0.85} roughness={0.2} />
+          </mesh>
+          <mesh position={[0, -0.18, 0]}>
+            <boxGeometry args={[0.08, 0.14, 0.08]} />
+            <meshStandardMaterial color="#7b8ca7" roughness={0.5} />
+          </mesh>
+        </group>
       ))}
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.42} />
+
+      {[-0.95, 0.95].map((x, i) => (
+        <group key={i} position={[x, -0.22, 0.38]}>
+          <mesh>
+            <cylinderGeometry args={[0.18, 0.2, 0.2, 24]} />
+            <meshStandardMaterial color="#4b5563" roughness={0.65} />
+          </mesh>
+          <mesh position={[0, 0.2, -0.08]}>
+            <boxGeometry args={[0.32, 0.26, 0.24]} />
+            <meshStandardMaterial color="#334155" roughness={0.56} />
+          </mesh>
+        </group>
+      ))}
+
+      <Float speed={1.05} rotationIntensity={0.09} floatIntensity={0.16}>
+        <mesh position={[0, 0.72, -0.12]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.52, 0.018, 16, 120]} />
+          <meshStandardMaterial color="#93c5fd" emissive="#1d4ed8" emissiveIntensity={0.62} />
+        </mesh>
+      </Float>
+
+      <Line points={cableRun} color="#7dd3fc" lineWidth={1.2} transparent opacity={0.46} />
+      <Line points={[[0, 0.42, -0.72], [0, 0.72, -0.12], [0, 1.4, -2.3]]} color="#93c5fd" lineWidth={0.8} transparent opacity={0.35} />
+
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.24} maxPolarAngle={Math.PI / 2.05} minPolarAngle={Math.PI / 2.8} />
     </>
   );
 }
@@ -378,18 +406,19 @@ export default function Page() {
   const health = Math.round((bots.filter((b) => b.enabled).length / Math.max(1, bots.length)) * 100);
 
   const panelShell =
-    "relative overflow-hidden rounded-[26px] border border-white/10 bg-slate-950/55 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_26px_58px_-44px_rgba(34,211,238,0.65)]";
+    "relative overflow-hidden rounded-[26px] border border-slate-200/10 bg-slate-900/45 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_28px_58px_-42px_rgba(59,130,246,0.45)]";
   const modeButton =
     "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] transition duration-200";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#04070f] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#0b1220] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-20 top-[-12%] h-[420px] w-[420px] rounded-full bg-cyan-500/10 blur-[125px]" />
-        <div className="absolute -right-24 top-[16%] h-[380px] w-[380px] rounded-full bg-indigo-500/10 blur-[125px]" />
-        <div className="absolute bottom-[-20%] left-[18%] h-[310px] w-[310px] rounded-full bg-sky-300/6 blur-[120px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(20,30,52,0.84)_0%,rgba(7,11,21,0.93)_54%,rgba(3,5,12,1)_100%)]" />
-        <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,rgba(148,163,184,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(30,41,59,0.96)_0%,rgba(15,23,42,0.94)_48%,rgba(7,12,24,0.98)_100%)]" />
+        <div className="absolute left-0 top-0 h-[46%] w-full bg-[radial-gradient(ellipse_at_top,rgba(148,163,184,0.18)_0%,rgba(148,163,184,0.04)_48%,transparent_78%)]" />
+        <div className="absolute -left-16 top-[4%] h-[320px] w-[320px] rounded-full bg-sky-300/10 blur-[120px]" />
+        <div className="absolute -right-10 top-[10%] h-[280px] w-[280px] rounded-full bg-indigo-300/10 blur-[120px]" />
+        <div className="absolute bottom-[-12%] left-[22%] h-[220px] w-[360px] rounded-[50%] bg-slate-300/8 blur-[120px]" />
+        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(148,163,184,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.05)_1px,transparent_1px)] [background-size:72px_72px]" />
       </div>
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
@@ -398,13 +427,13 @@ export default function Page() {
           animate={{ opacity: 1, y: 0 }}
           className={`${panelShell} lg:col-span-8 p-5 md:p-7`}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.08)_0%,transparent_42%,rgba(99,102,241,0.06)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(125,211,252,0.08)_0%,transparent_42%,rgba(165,180,252,0.08)_100%)]" />
           <div className="relative">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-200/55">OpsNode Directive Array</p>
+                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-100/60">OpsNode Corporate Command</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Commander Bridge</h1>
-                <p className="mt-2 text-sm text-slate-300/80">Assemble your squad, tune loadouts, dispatch formations</p>
+                <p className="mt-2 text-sm text-slate-300/85">Assemble your squad, tune loadouts, and manage operations from HQ</p>
               </div>
               <span className="rounded-full border border-emerald-300/30 bg-emerald-400/8 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-200">
                 Live
@@ -434,12 +463,12 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="relative h-[360px] overflow-hidden rounded-2xl border border-cyan-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(14,116,144,0.26)_0%,rgba(2,6,23,0.74)_56%,rgba(2,6,23,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_-44px_rgba(34,211,238,0.7)]">
-              <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:linear-gradient(to_right,rgba(125,211,252,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(125,211,252,0.04)_1px,transparent_1px)] [background-size:42px_42px]" />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_34%,rgba(2,6,23,0.72)_100%)]" />
+            <div className="relative h-[360px] overflow-hidden rounded-2xl border border-slate-200/14 bg-[linear-gradient(180deg,rgba(30,41,59,0.92)_0%,rgba(15,23,42,0.86)_58%,rgba(9,14,26,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_60px_-44px_rgba(96,165,250,0.55)]">
+              <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.06)_1px,transparent_1px)] [background-size:42px_42px]" />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(7,12,24,0.66)_100%)]" />
 
               <motion.div
-                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-cyan-200/8 to-transparent"
+                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-slate-100/12 to-transparent"
                 initial={{ x: -130, opacity: 0 }}
                 animate={{ x: 760, opacity: [0, 0.35, 0] }}
                 transition={{ duration: 5.6, repeat: Infinity, ease: "linear" }}
@@ -459,13 +488,13 @@ export default function Page() {
                 </span>
               </div>
 
-              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-lg border border-cyan-100/10 bg-slate-950/45 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-cyan-100/75">
-                <span>3D Deployment Layer</span>
-                <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units combat-ready` : "Recruit units to fill loadout"}</span>
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-lg border border-slate-200/12 bg-slate-900/50 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-slate-100/80">
+                <span>HQ Environment Preview</span>
+                <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to fill roster"}</span>
               </div>
 
-              <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
-                <NodeCore />
+              <Canvas camera={{ position: [0, 0.8, 4.9], fov: 52 }}>
+                <OfficeCommandScene />
               </Canvas>
             </div>
 
