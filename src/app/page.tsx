@@ -23,6 +23,7 @@ type BotConfig = {
   id: string;
   name: string;
   status: "idle" | "running" | "paused";
+  priority: "low" | "med" | "high";
   enabled: boolean;
   model: string;
   provider: "openai-codex" | "google-gemini-cli";
@@ -46,6 +47,7 @@ const defaults: BotConfig[] = [
     id: "yasna-main",
     name: "Yasna",
     status: "idle",
+    priority: "high",
     enabled: true,
     model: "gpt-5.3-codex",
     provider: "openai-codex",
@@ -59,6 +61,7 @@ const defaults: BotConfig[] = [
     id: "zhu-ops",
     name: "Zhu",
     status: "idle",
+    priority: "med",
     enabled: true,
     model: "gemini-3-pro-preview",
     provider: "google-gemini-cli",
@@ -112,7 +115,12 @@ function loadBots(): BotConfig[] {
   if (typeof window === "undefined") return defaults;
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : defaults;
+    const parsed = raw ? (JSON.parse(raw) as Partial<BotConfig>[]) : defaults;
+    return parsed.map((b, i) => ({
+      ...defaults[Math.min(i, defaults.length - 1)],
+      ...b,
+      priority: (b.priority as BotConfig["priority"]) || "med",
+    })) as BotConfig[];
   } catch {
     return defaults;
   }
@@ -129,6 +137,7 @@ function saveSnapshot(bots: BotConfig[]) {
 export default function Page() {
   const [bots, setBots] = useState<BotConfig[]>(defaults);
   const [selectedId, setSelectedId] = useState<string>(defaults[0].id);
+  const [viewMode, setViewMode] = useState<"commander" | "detail">("commander");
   const [showConfig, setShowConfig] = useState(false);
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
 
@@ -149,6 +158,7 @@ export default function Page() {
         id,
         name: `Bot ${bots.length + 1}`,
         status: "idle",
+        priority: "low",
         enabled: true,
         model: "gpt-5.3-codex",
         provider: "openai-codex",
@@ -216,11 +226,25 @@ export default function Page() {
             </div>
             <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs text-emerald-300">LIVE</span>
           </div>
+          <div className="mb-3 flex items-center gap-2">
+            <button onClick={() => setViewMode("commander")} className={`rounded-lg px-3 py-1.5 text-xs ${viewMode === "commander" ? "bg-cyan-500 text-slate-950" : "border border-white/20 text-slate-200"}`}>Commander</button>
+            <button onClick={() => setViewMode("detail")} className={`rounded-lg px-3 py-1.5 text-xs ${viewMode === "detail" ? "bg-cyan-500 text-slate-950" : "border border-white/20 text-slate-200"}`}>Detail</button>
+          </div>
           <div className="h-[360px] rounded-2xl border border-cyan-200/20 bg-slate-900/50">
             <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
               <NodeCore />
             </Canvas>
           </div>
+          {viewMode === "commander" && (
+            <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-slate-900/40 p-3">
+              <p className="mb-2 text-xs text-cyan-200">Tactical Map</p>
+              <div className="grid grid-cols-6 gap-1">
+                {Array.from({ length: 24 }).map((_, i) => (
+                  <div key={i} className="h-6 rounded bg-cyan-400/10" />
+                ))}
+              </div>
+            </div>
+          )}
         </motion.section>
 
         <section className="grid gap-4 lg:col-span-4">
@@ -247,7 +271,10 @@ export default function Page() {
                     <p className="font-semibold">{b.name}</p>
                     <p className="text-xs text-slate-300">{b.provider} · {b.model}</p>
                   </button>
-                  <span className={`rounded-full px-2 py-1 text-xs ${b.status === "running" ? "bg-emerald-500/20 text-emerald-300" : b.status === "paused" ? "bg-amber-500/20 text-amber-300" : "bg-slate-500/30 text-slate-200"}`}>{b.status}</span>
+                  <div className="flex items-center gap-2">
+                    <span className={`rounded-full px-2 py-1 text-[10px] uppercase ${b.priority === "high" ? "bg-rose-500/20 text-rose-300" : b.priority === "med" ? "bg-amber-500/20 text-amber-300" : "bg-emerald-500/20 text-emerald-300"}`}>{b.priority}</span>
+                    <span className={`rounded-full px-2 py-1 text-xs ${b.status === "running" ? "bg-emerald-500/20 text-emerald-300" : b.status === "paused" ? "bg-amber-500/20 text-amber-300" : "bg-slate-500/30 text-slate-200"}`}>{b.status}</span>
+                  </div>
                 </div>
                 <div className="mt-3 flex gap-2">
                   <button onClick={() => { setSelectedId(b.id); setShowConfig(true); }} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-xs hover:bg-white/10"><Settings size={13} /> Config</button>
@@ -284,6 +311,7 @@ export default function Page() {
               <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
               <Field label="Provider" value={selected.provider} onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })} />
               <Field label="Thinking" value={selected.thinking} onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })} />
+              <Field label="Priority" value={selected.priority} onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })} />
               <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
               <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
               <div className="md:col-span-2">
