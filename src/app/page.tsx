@@ -158,8 +158,38 @@ function resolveAvatar(avatar: string | undefined, archetype: BotArchetype) {
   return avatar;
 }
 
-function OfficeCommandScene() {
-  const cableRun: [number, number, number][] = [
+type Vec3 = [number, number, number];
+
+const ARCHETYPE_RENDER: Record<
+  BotArchetype,
+  { color: string; accent: string; icon: string }
+> = {
+  sentinel: { color: "#22d3ee", accent: "#67e8f9", icon: "shield" },
+  sniper: { color: "#d946ef", accent: "#f0abfc", icon: "reticle" },
+  analyst: { color: "#6366f1", accent: "#a5b4fc", icon: "core" },
+  medic: { color: "#10b981", accent: "#6ee7b7", icon: "cross" },
+};
+
+function unitSlotPosition(i: number): Vec3 {
+  const row = Math.floor(i / 4);
+  const col = i % 4;
+  return [col * 0.78 - 1.17, 0.08, row * 0.66 - 0.24];
+}
+
+function formationSlot(i: number): Vec3 {
+  const ring: Vec3[] = [
+    [0, 0.11, 0.34],
+    [-0.5, 0.11, 0.05],
+    [0.5, 0.11, 0.05],
+    [-0.5, 0.11, -0.33],
+    [0.5, 0.11, -0.33],
+    [0, 0.11, -0.58],
+  ];
+  return ring[i] ?? [((i % 3) - 1) * 0.45, 0.11, -0.62 - Math.floor(i / 3) * 0.26];
+}
+
+function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }) {
+  const cableRun: Vec3[] = [
     [-1.6, 0.12, 0.3],
     [-0.8, 0.16, 0.1],
     [0, 0.14, 0],
@@ -170,12 +200,12 @@ function OfficeCommandScene() {
   return (
     <>
       <color attach="background" args={["#0f172a"]} />
-      <ambientLight intensity={0.62} />
-      <directionalLight position={[4, 5, 2]} intensity={1.15} color="#d8ecff" />
-      <pointLight position={[0, 2.2, 1.4]} intensity={0.75} color="#7dd3fc" />
-      <pointLight position={[0, 0.9, -2.2]} intensity={0.5} color="#6366f1" />
+      <ambientLight intensity={0.56} />
+      <directionalLight position={[4, 5, 2]} intensity={1.2} color="#d8ecff" />
+      <pointLight position={[0, 2.2, 1.4]} intensity={0.7} color="#7dd3fc" />
+      <pointLight position={[0, 0.95, -2.2]} intensity={0.42} color="#6366f1" />
 
-      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
         <planeGeometry args={[8, 6]} />
         <meshStandardMaterial color="#192538" roughness={0.86} metalness={0.08} />
       </mesh>
@@ -186,47 +216,212 @@ function OfficeCommandScene() {
       </mesh>
 
       <mesh position={[0, 0.07, -0.25]}>
-        <boxGeometry args={[2.6, 0.14, 1.24]} />
+        <boxGeometry args={[2.9, 0.14, 1.44]} />
         <meshStandardMaterial color="#2b3c57" roughness={0.34} metalness={0.48} />
       </mesh>
 
-      {[-0.85, -0.28, 0.28, 0.85].map((x, i) => (
-        <group key={i} position={[x, 0.38, -0.72]}>
+      {[-0.95, -0.32, 0.32, 0.95].map((x, i) => (
+        <group key={i} position={[x, 0.38, -0.74]}>
           <mesh>
-            <boxGeometry args={[0.46, 0.28, 0.03]} />
-            <meshStandardMaterial color="#7dd3fc" emissive="#0e4f73" emissiveIntensity={0.85} roughness={0.2} />
+            <boxGeometry args={[0.5, 0.31, 0.03]} />
+            <meshStandardMaterial color="#7dd3fc" emissive="#0e4f73" emissiveIntensity={0.75} roughness={0.2} />
           </mesh>
-          <mesh position={[0, -0.18, 0]}>
-            <boxGeometry args={[0.08, 0.14, 0.08]} />
+          <mesh position={[0, -0.2, 0]}>
+            <boxGeometry args={[0.08, 0.16, 0.08]} />
             <meshStandardMaterial color="#7b8ca7" roughness={0.5} />
           </mesh>
         </group>
       ))}
 
-      {[-0.95, 0.95].map((x, i) => (
-        <group key={i} position={[x, -0.22, 0.38]}>
+      {[-1.0, 1.0].map((x, i) => (
+        <group key={i} position={[x, -0.22, 0.42]}>
           <mesh>
-            <cylinderGeometry args={[0.18, 0.2, 0.2, 24]} />
+            <cylinderGeometry args={[0.2, 0.2, 0.22, 20]} />
             <meshStandardMaterial color="#4b5563" roughness={0.65} />
           </mesh>
           <mesh position={[0, 0.2, -0.08]}>
-            <boxGeometry args={[0.32, 0.26, 0.24]} />
+            <boxGeometry args={[0.34, 0.28, 0.24]} />
             <meshStandardMaterial color="#334155" roughness={0.56} />
           </mesh>
         </group>
       ))}
 
-      <Float speed={1.05} rotationIntensity={0.09} floatIntensity={0.16}>
+      <Float speed={1} rotationIntensity={0.09} floatIntensity={0.14}>
         <mesh position={[0, 0.72, -0.12]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.52, 0.018, 16, 120]} />
+          <torusGeometry args={[0.52, 0.018, 16, 100]} />
           <meshStandardMaterial color="#93c5fd" emissive="#1d4ed8" emissiveIntensity={0.62} />
         </mesh>
       </Float>
 
       <Line points={cableRun} color="#7dd3fc" lineWidth={1.2} transparent opacity={0.46} />
       <Line points={[[0, 0.42, -0.72], [0, 0.72, -0.12], [0, 1.4, -2.3]]} color="#93c5fd" lineWidth={0.8} transparent opacity={0.35} />
+    </>
+  );
+}
 
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.24} maxPolarAngle={Math.PI / 2.05} minPolarAngle={Math.PI / 2.8} />
+function UnitActor({
+  bot,
+  home,
+  formation,
+  selected,
+  grouped,
+  onSelect,
+  seed,
+}: {
+  bot: BotConfig;
+  home: Vec3;
+  formation: Vec3;
+  selected: boolean;
+  grouped: boolean;
+  onSelect: (id: string, additive: boolean) => void;
+  seed: number;
+}) {
+  const ref = useRef<Group>(null);
+  const [hovered, setHovered] = useState(false);
+  const style = ARCHETYPE_RENDER[bot.archetype];
+
+  useFrame((state, delta) => {
+    const group = ref.current;
+    if (!group) return;
+
+    const t = state.clock.elapsedTime;
+    const idleLift = Math.sin(t * 1.4 + seed * 0.7) * 0.03;
+    const pulse = grouped ? 1 + Math.sin(t * 4.6) * 0.06 : 1;
+    const target = grouped ? formation : home;
+    const yTarget = target[1] + idleLift + (selected ? 0.035 : 0);
+
+    const lerp = 1 - Math.exp(-5.5 * delta);
+    group.position.x += (target[0] - group.position.x) * lerp;
+    group.position.y += (yTarget - group.position.y) * lerp;
+    group.position.z += (target[2] - group.position.z) * lerp;
+
+    const baseYaw = grouped ? Math.atan2(-target[0], -target[2] + 0.2) : Math.sin(t * 0.3 + seed) * 0.1;
+    group.rotation.y += (baseYaw - group.rotation.y) * lerp;
+
+    const targetScale = (selected ? 1.16 : 1) * (hovered ? 1.05 : 1) * pulse;
+    group.scale.x += (targetScale - group.scale.x) * lerp;
+    group.scale.y += (targetScale - group.scale.y) * lerp;
+    group.scale.z += (targetScale - group.scale.z) * lerp;
+  });
+
+  const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
+    e.stopPropagation();
+    onSelect(bot.id, e.nativeEvent.shiftKey || e.nativeEvent.metaKey || e.nativeEvent.ctrlKey);
+  };
+
+  return (
+    <group
+      ref={ref}
+      position={home}
+      onPointerOver={(e) => {
+        e.stopPropagation();
+        setHovered(true);
+      }}
+      onPointerOut={() => setHovered(false)}
+      onPointerDown={onPointerDown}
+    >
+      <mesh position={[0, -0.03, 0]}>
+        <cylinderGeometry args={[0.18, 0.24, 0.05, 20]} />
+        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0.12} />
+      </mesh>
+
+      <mesh position={[0, 0.08, 0]}>
+        {bot.archetype === "sentinel" && <boxGeometry args={[0.24, 0.24, 0.24]} />}
+        {bot.archetype === "sniper" && <coneGeometry args={[0.16, 0.33, 14]} />}
+        {bot.archetype === "analyst" && <octahedronGeometry args={[0.19, 0]} />}
+        {bot.archetype === "medic" && <capsuleGeometry args={[0.1, 0.18, 6, 12]} />}
+        <meshStandardMaterial color={style.color} emissive={style.color} emissiveIntensity={selected ? 0.34 : 0.12} roughness={0.42} metalness={0.2} />
+      </mesh>
+
+      <mesh position={[0, 0.28, 0]}>
+        <sphereGeometry args={[0.055, 12, 12]} />
+        <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.42} />
+      </mesh>
+
+      {style.icon === "shield" && (
+        <mesh position={[0, 0.08, 0.16]}>
+          <cylinderGeometry args={[0.07, 0.045, 0.04, 6]} />
+          <meshStandardMaterial color={style.accent} roughness={0.3} metalness={0.45} />
+        </mesh>
+      )}
+      {style.icon === "reticle" && (
+        <group position={[0, 0.08, 0.16]}>
+          <mesh>
+            <torusGeometry args={[0.07, 0.01, 8, 24]} />
+            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.3} />
+          </mesh>
+          <mesh rotation={[0, 0, Math.PI / 2]}>
+            <boxGeometry args={[0.12, 0.006, 0.006]} />
+            <meshStandardMaterial color={style.accent} />
+          </mesh>
+        </group>
+      )}
+      {style.icon === "core" && (
+        <mesh position={[0, 0.08, 0.16]}>
+          <icosahedronGeometry args={[0.06, 0]} />
+          <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.24} />
+        </mesh>
+      )}
+      {style.icon === "cross" && (
+        <group position={[0, 0.08, 0.16]}>
+          <mesh>
+            <boxGeometry args={[0.03, 0.11, 0.03]} />
+            <meshStandardMaterial color={style.accent} />
+          </mesh>
+          <mesh>
+            <boxGeometry args={[0.11, 0.03, 0.03]} />
+            <meshStandardMaterial color={style.accent} />
+          </mesh>
+        </group>
+      )}
+
+      {selected && (
+        <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
+          <ringGeometry args={[0.2, 0.24, 32]} />
+          <meshBasicMaterial color={style.accent} transparent opacity={0.75} />
+        </mesh>
+      )}
+    </group>
+  );
+}
+
+function NodeCore({
+  bots,
+  selectedBots,
+  onUnitSelect,
+  onClearSelection,
+}: {
+  bots: BotConfig[];
+  selectedBots: string[];
+  onUnitSelect: (id: string, additive: boolean) => void;
+  onClearSelection: () => void;
+}) {
+  const squad = bots.slice(0, 12);
+  const selectedSet = useMemo(() => new Set(selectedBots), [selectedBots]);
+  const grouped = selectedBots.length > 1;
+
+  const formationMap = useMemo(() => {
+    const map = new Map<string, Vec3>();
+    selectedBots.forEach((id, i) => map.set(id, formationSlot(i)));
+    return map;
+  }, [selectedBots]);
+
+  return (
+    <>
+      <SceneEnvironment onClearSelection={onClearSelection} />
+      {squad.map((bot, i) => (
+        <UnitActor
+          key={bot.id}
+          bot={bot}
+          home={unitSlotPosition(i)}
+          formation={formationMap.get(bot.id) ?? unitSlotPosition(i)}
+          selected={selectedSet.has(bot.id)}
+          grouped={grouped && selectedSet.has(bot.id)}
+          onSelect={onUnitSelect}
+          seed={i + 1}
+        />
+      ))}
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.16} maxPolarAngle={Math.PI / 2.05} minPolarAngle={Math.PI / 2.9} />
     </>
   );
 }
@@ -493,8 +688,21 @@ export default function Page() {
                 <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to fill roster"}</span>
               </div>
 
-              <Canvas camera={{ position: [0, 0.8, 4.9], fov: 52 }}>
-                <OfficeCommandScene />
+              <Canvas camera={{ position: [0, 0.35, 4.3], fov: 55 }}>
+                <NodeCore
+                  bots={bots.filter((b) => b.enabled)}
+                  selectedBots={selectedBots}
+                  onUnitSelect={(id, additive) => {
+                    setSelectedId(id);
+                    setSelectedBots((prev) => {
+                      if (additive) {
+                        return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+                      }
+                      return [id];
+                    });
+                  }}
+                  onClearSelection={() => setSelectedBots([])}
+                />
               </Canvas>
             </div>
 
