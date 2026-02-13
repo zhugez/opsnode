@@ -474,6 +474,9 @@ function loadBots(): BotConfig[] {
     const parsed = raw ? (JSON.parse(raw) as Partial<BotConfig>[]) : defaults;
     const hydrated: BotConfig[] = [];
 
+    const seenRawIds = new Set<string>();
+    const seenFingerprint = new Set<string>();
+
     parsed.forEach((b, i) => {
       const fallback = defaults[Math.min(i, defaults.length - 1)] || defaults[0];
       const archetype = (b.archetype as BotArchetype) || fallback.archetype || "sentinel";
@@ -484,7 +487,15 @@ function loadBots(): BotConfig[] {
           : nextAvailableCallsign(archetype, hydrated);
 
       const rawId = typeof b.id === "string" ? b.id : "";
-      const id = rawId && !hydrated.some((x) => x.id === rawId) ? rawId : makeBotId(hydrated);
+      if (rawId && seenRawIds.has(rawId)) return;
+      if (rawId) seenRawIds.add(rawId);
+
+      const nameForFp = (typeof b.name === "string" ? b.name : fallback.name || "").trim().toLowerCase();
+      const fingerprint = `${nameForFp}|${callsign}|${archetype}`;
+      if (seenFingerprint.has(fingerprint)) return;
+      seenFingerprint.add(fingerprint);
+
+      const id = rawId || makeBotId(hydrated);
 
       hydrated.push({
         ...fallback,
@@ -522,7 +533,11 @@ export default function Page() {
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
   const [recruitDraft, setRecruitDraft] = useState<RecruitDraft>(initialRecruitDraft);
 
-  useEffect(() => setBots(loadBots()), []);
+  useEffect(() => {
+    const loaded = loadBots();
+    setBots(loaded);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(loaded));
+  }, []);
 
   const selected = useMemo(() => bots.find((b) => b.id === selectedId) || bots[0], [bots, selectedId]);
   const selectedCount = selectedBots.length;
