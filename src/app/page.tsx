@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Line, Clone, useGLTF, useTexture } from "@react-three/drei";
+import { OrbitControls, Float, Line, Clone, Text, useGLTF, useTexture } from "@react-three/drei";
 import { Group, MeshBasicMaterial, MeshStandardMaterial, SpriteMaterial, Vector3 } from "three";
 import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { motion } from "framer-motion";
@@ -46,6 +46,8 @@ type BotConfig = {
   tier: BotTier;
   avatar: string;
   deskSlot?: number;
+  squadId?: string;
+  projectTag?: string;
 };
 
 type ConfigVersion = {
@@ -65,6 +67,8 @@ type RecruitDraft = {
   allowedTools: string;
   schedule: string;
   channel: string;
+  squadId: string;
+  projectTag: string;
 };
 
 const STORAGE_KEY = "opsnode.bots.v1";
@@ -166,6 +170,8 @@ const defaults: BotConfig[] = [
     tier: "III",
     avatar: ARCHETYPES.analyst.avatar,
     deskSlot: 0,
+    squadId: "alpha",
+    projectTag: "NEXUS",
   },
   {
     id: "zhu-ops",
@@ -185,6 +191,8 @@ const defaults: BotConfig[] = [
     tier: "II",
     avatar: ARCHETYPES.sentinel.avatar,
     deskSlot: 1,
+    squadId: "alpha",
+    projectTag: "NEXUS",
   },
 ];
 
@@ -200,6 +208,8 @@ const initialRecruitDraft: RecruitDraft = {
   allowedTools: "exec, web_search",
   schedule: "manual",
   channel: "telegram",
+  squadId: "auto",
+  projectTag: "",
 };
 
 function resolveAvatar(_avatar: string | undefined, archetype: BotArchetype) {
@@ -234,39 +244,130 @@ const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string 
   paused: { color: "#f59e0b", accent: "#fcd34d" },
 };
 
-const DESK_SLOT_COUNT = 12;
+const SQUAD_SIZE = 4;
+
+type SquadDefinition = {
+  id: string;
+  name: string;
+  projectTag: string;
+  color: string;
+};
+
+const SQUADS: SquadDefinition[] = [
+  { id: "alpha", name: "Squad Alpha", projectTag: "NEXUS", color: "#67e8f9" },
+  { id: "bravo", name: "Squad Bravo", projectTag: "ORBIT", color: "#a5b4fc" },
+  { id: "charlie", name: "Squad Charlie", projectTag: "AURORA", color: "#6ee7b7" },
+];
+
+const DESK_SLOT_COUNT = SQUADS.length * SQUAD_SIZE;
 const MIN_CAMERA_DISTANCE = 3.2;
 const MAX_CAMERA_DISTANCE = 7.4;
 const DEFAULT_CAMERA_DISTANCE = 4.6;
 
-function firstFreeDeskSlot(existing: BotConfig[]) {
+function normalizeProjectTag(v: string | undefined) {
+  const normalized = (v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 18);
+  return normalized;
+}
+
+function squadIndexById(id: string | undefined) {
+  const index = SQUADS.findIndex((s) => s.id === id);
+  return index >= 0 ? index : 0;
+}
+
+function squadForSlot(slot: number | undefined) {
+  if (!Number.isInteger(slot)) return null;
+  const index = Math.floor((slot as number) / SQUAD_SIZE);
+  return SQUADS[index] ?? null;
+}
+
+function laneCenterZ(index: number) {
+  return index * 1.08 - 1.08;
+}
+
+function squadSeatSlot(squadId: string, seat: number) {
+  const base = squadIndexById(squadId) * SQUAD_SIZE;
+  return base + seat;
+}
+
+function firstFreeSlotInSquad(existing: BotConfig[], squadId: string) {
   const used = new Set(existing.map((b) => b.deskSlot).filter((slot): slot is number => Number.isInteger(slot)));
-  for (let i = 0; i < DESK_SLOT_COUNT; i += 1) {
-    if (!used.has(i)) return i;
+  for (let seat = 0; seat < SQUAD_SIZE; seat += 1) {
+    const slot = squadSeatSlot(squadId, seat);
+    if (!used.has(slot)) return slot;
   }
-  return existing.length % DESK_SLOT_COUNT;
+  return null;
+}
+
+function firstSquadWithSpace(existing: BotConfig[]) {
+  for (const squad of SQUADS) {
+    if (firstFreeSlotInSquad(existing, squad.id) !== null) return squad;
+  }
+  return SQUADS[0];
 }
 
 function assignDeskSlots(list: BotConfig[]) {
   const used = new Set<number>();
   return list.map((bot, i) => {
+    const inferredSquad = bot.squadId && SQUADS.some((s) => s.id === bot.squadId) ? bot.squadId : squadForSlot(bot.deskSlot)?.id;
+    let squadId = inferredSquad ?? SQUADS[0].id;
+
     const raw = bot.deskSlot;
-    const valid = Number.isInteger(raw) && (raw as number) >= 0 && (raw as number) < DESK_SLOT_COUNT && !used.has(raw as number);
-    const deskSlot = valid ? (raw as number) : (() => {
-      for (let slot = 0; slot < DESK_SLOT_COUNT; slot += 1) {
-        if (!used.has(slot)) return slot;
+    const validWithinSquad =
+      Number.isInteger(raw) &&
+      (raw as number) >= 0 &&
+      (raw as number) < DESK_SLOT_COUNT &&
+      !used.has(raw as number) &&
+      squadForSlot(raw as number)?.id === squadId;
+
+    let deskSlot = validWithinSquad ? (raw as number) : -1;
+
+    if (deskSlot < 0) {
+      for (let seat = 0; seat < SQUAD_SIZE; seat += 1) {
+        const candidate = squadSeatSlot(squadId, seat);
+        if (!used.has(candidate)) {
+          deskSlot = candidate;
+          break;
+        }
       }
-      return i % DESK_SLOT_COUNT;
-    })();
+    }
+
+    if (deskSlot < 0) {
+      for (let slot = 0; slot < DESK_SLOT_COUNT; slot += 1) {
+        if (!used.has(slot)) {
+          deskSlot = slot;
+          squadId = squadForSlot(slot)?.id ?? squadId;
+          break;
+        }
+      }
+    }
+
+    if (deskSlot < 0) {
+      deskSlot = i % DESK_SLOT_COUNT;
+      squadId = squadForSlot(deskSlot)?.id ?? squadId;
+    }
+
     used.add(deskSlot);
-    return { ...bot, deskSlot };
+    const squadMeta = SQUADS.find((s) => s.id === squadId) ?? SQUADS[0];
+
+    return {
+      ...bot,
+      deskSlot,
+      squadId,
+      projectTag: normalizeProjectTag(bot.projectTag) || squadMeta.projectTag,
+    };
   });
 }
 
 function unitSlotPosition(i: number): Vec3 {
-  const row = Math.floor(i / 4);
-  const col = i % 4;
-  return [col * 0.86 - 1.29, 0.09, row * 0.72 - 0.33];
+  const lane = Math.floor(i / SQUAD_SIZE);
+  const seat = i % SQUAD_SIZE;
+  const x = (seat - (SQUAD_SIZE - 1) / 2) * 0.72;
+  return [x, 0.09, laneCenterZ(lane)];
 }
 
 function formationSlot(i: number): Vec3 {
@@ -281,7 +382,13 @@ function formationSlot(i: number): Vec3 {
   return ring[i] ?? [((i % 3) - 1) * 0.45, 0.11, -0.62 - Math.floor(i / 3) * 0.26];
 }
 
-function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }) {
+function SceneEnvironment({
+  onClearSelection,
+  squadById,
+}: {
+  onClearSelection: () => void;
+  squadById: Map<string, SquadDefinition>;
+}) {
   const inlayRun: Vec3[] = [
     [-1.85, 0.01, 0.68],
     [-0.95, 0.01, 0.36],
@@ -312,9 +419,29 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
       </mesh>
 
       <mesh position={[0, -0.565, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <planeGeometry args={[3.8, 2.6]} />
+        <planeGeometry args={[7, 3.9]} />
         <meshStandardMaterial color="#1f242d" roughness={0.28} metalness={0.42} />
       </mesh>
+
+      {SQUADS.map((baseSquad, lane) => {
+        const squad = squadById.get(baseSquad.id) ?? baseSquad;
+        const z = laneCenterZ(lane);
+        return (
+          <group key={squad.id}>
+            <mesh position={[0, -0.56, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <planeGeometry args={[6.15, 0.72]} />
+              <meshStandardMaterial color={squad.color} transparent opacity={0.1} roughness={0.4} metalness={0.08} />
+            </mesh>
+            <mesh position={[-1.95, -0.55, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.08, 0.11, 24]} />
+              <meshBasicMaterial color={squad.color} transparent opacity={0.55} />
+            </mesh>
+            <Text position={[-2.1, -0.12, z]} rotation={[0, Math.PI / 2, 0]} fontSize={0.11} color={squad.color} anchorX="center" anchorY="middle">
+              {`${squad.name} · ${squad.projectTag}`}
+            </Text>
+          </group>
+        );
+      })}
 
       <group position={[0, -0.55, -2.35]} scale={[4.4, 2.4, 1]}>
         <Clone object={paneling.scene} />
@@ -332,11 +459,14 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
 
       {Array.from({ length: DESK_SLOT_COUNT }).map((_, i) => {
         const [x, y, z] = unitSlotPosition(i);
+        const lane = Math.floor(i / SQUAD_SIZE);
+        const squad = SQUADS[lane];
+        const squadColor = squadById.get(squad.id)?.color ?? squad.color;
         return (
           <group key={`desk-slot-${i}`} position={[x, y - 0.066, z]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
               <ringGeometry args={[0.172, 0.204, 24]} />
-              <meshBasicMaterial color="#d6c2a4" transparent opacity={0.2} />
+              <meshBasicMaterial color={squadColor} transparent opacity={0.24} />
             </mesh>
             <mesh position={[0, -0.006, 0]}>
               <cylinderGeometry args={[0.154, 0.154, 0.016, 18]} />
@@ -585,6 +715,20 @@ function NodeCore({
     return map;
   }, [selectedBots]);
 
+  const squadById = useMemo(() => {
+    const map = new Map<string, SquadDefinition>();
+    SQUADS.forEach((s) => map.set(s.id, s));
+    bots.forEach((bot) => {
+      const squadId = bot.squadId;
+      if (!squadId) return;
+      const base = map.get(squadId);
+      if (!base) return;
+      const projectTag = normalizeProjectTag(bot.projectTag) || base.projectTag;
+      map.set(squadId, { ...base, projectTag });
+    });
+    return map;
+  }, [bots]);
+
   useEffect(() => {
     const controls = controlsRef.current;
     if (!controls) return;
@@ -609,7 +753,7 @@ function NodeCore({
 
   return (
     <>
-      <SceneEnvironment onClearSelection={onClearSelection} />
+      <SceneEnvironment onClearSelection={onClearSelection} squadById={squadById} />
       {squad.map((bot, i) => {
         const slot = bot.deskSlot ?? i;
         const home = unitSlotPosition(slot);
@@ -695,6 +839,13 @@ function loadBots(): BotConfig[] {
         tier: (b.tier as BotTier) || fallback.tier || "I",
         avatar: resolveAvatar(b.avatar, archetype),
         deskSlot: Number.isInteger(b.deskSlot) ? (b.deskSlot as number) : fallback.deskSlot,
+        squadId:
+          (typeof b.squadId === "string" && SQUADS.some((s) => s.id === b.squadId)
+            ? b.squadId
+            : typeof fallback.squadId === "string"
+              ? fallback.squadId
+              : squadForSlot(Number.isInteger(b.deskSlot) ? (b.deskSlot as number) : fallback.deskSlot)?.id) ?? SQUADS[0].id,
+        projectTag: normalizeProjectTag(typeof b.projectTag === "string" ? b.projectTag : undefined),
       } as BotConfig);
     });
 
@@ -710,6 +861,38 @@ function saveSnapshot(bots: BotConfig[]) {
   const prev: ConfigVersion[] = prevRaw ? JSON.parse(prevRaw) : [];
   const next = [{ at: new Date().toISOString(), bots }, ...prev].slice(0, 20);
   localStorage.setItem(VERSIONS_KEY, JSON.stringify(next));
+}
+
+function recruitPlacement(existing: BotConfig[], preferredSquad: string) {
+  const preferredValid = SQUADS.some((s) => s.id === preferredSquad);
+  const squad = preferredValid ? SQUADS.find((s) => s.id === preferredSquad)! : firstSquadWithSpace(existing);
+  const preferredSlot = firstFreeSlotInSquad(existing, squad.id);
+
+  if (preferredSlot !== null) {
+    return {
+      squad,
+      deskSlot: preferredSlot,
+      autoRerouted: false,
+    };
+  }
+
+  const fallbackSquad = firstSquadWithSpace(existing);
+  const fallbackSlot = firstFreeSlotInSquad(existing, fallbackSquad.id);
+  if (fallbackSlot !== null) {
+    return {
+      squad: fallbackSquad,
+      deskSlot: fallbackSlot,
+      autoRerouted: fallbackSquad.id !== squad.id,
+    };
+  }
+
+  const deskSlot = existing.length % DESK_SLOT_COUNT;
+  const overflowSquad = squadForSlot(deskSlot) ?? SQUADS[0];
+  return {
+    squad: overflowSquad,
+    deskSlot,
+    autoRerouted: overflowSquad.id !== squad.id,
+  };
 }
 
 export default function Page() {
@@ -733,6 +916,16 @@ export default function Page() {
 
   const selected = useMemo(() => bots.find((b) => b.id === selectedId) || bots[0], [bots, selectedId]);
   const selectedCount = selectedBots.length;
+
+  const squadsView = useMemo(() => {
+    return SQUADS.map((squad) => {
+      const members = bots
+        .filter((b) => b.squadId === squad.id)
+        .sort((a, b) => (a.deskSlot ?? Number.MAX_SAFE_INTEGER) - (b.deskSlot ?? Number.MAX_SAFE_INTEGER));
+      const projectTag = members[0]?.projectTag || squad.projectTag;
+      return { ...squad, projectTag, members };
+    });
+  }, [bots]);
 
   const selectedBotUnits = useMemo(() => bots.filter((b) => selectedBots.includes(b.id)), [bots, selectedBots]);
 
@@ -758,6 +951,10 @@ export default function Page() {
     const id = makeBotId(bots);
     const archetype = recruitDraft.archetype;
     const callsign = normalizeCallsign(recruitDraft.callsign) || nextAvailableCallsign(archetype, bots);
+    const preferredSquad = recruitDraft.squadId === "auto" ? firstSquadWithSpace(bots).id : recruitDraft.squadId;
+    const placement = recruitPlacement(bots, preferredSquad);
+    const projectTag = normalizeProjectTag(recruitDraft.projectTag) || placement.squad.projectTag;
+
     const next: BotConfig[] = [
       ...bots,
       {
@@ -777,7 +974,9 @@ export default function Page() {
         archetype,
         tier: recruitDraft.tier,
         avatar: ARCHETYPES[archetype].avatar,
-        deskSlot: firstFreeDeskSlot(bots),
+        deskSlot: placement.deskSlot,
+        squadId: placement.squad.id,
+        projectTag,
       },
     ];
 
@@ -790,7 +989,9 @@ export default function Page() {
     setSelectedId(id);
     setShowRecruitMenu(false);
     setRecruitDraft(initialRecruitDraft);
-    setGatewayMsg(`Recruited [${callsign}] ${next[next.length - 1].name} as ${ARCHETYPES[archetype].label}`);
+    setGatewayMsg(
+      `Recruited [${callsign}] ${next[next.length - 1].name} · ${placement.squad.name} / ${projectTag}${placement.autoRerouted ? " (auto-rerouted)" : ""}`,
+    );
   };
 
   const updateBot = (patch: Partial<BotConfig>) => {
@@ -806,6 +1007,12 @@ export default function Page() {
         const taken = bots.some((x) => x.id !== b.id && x.callsign === normalized);
         merged.callsign =
           normalized && !taken ? normalized : nextAvailableCallsign(merged.archetype, bots.filter((x) => x.id !== b.id));
+      }
+      if (typeof patch.projectTag === "string") {
+        merged.projectTag = normalizeProjectTag(patch.projectTag) || merged.projectTag;
+      }
+      if (typeof patch.squadId === "string" && !SQUADS.some((s) => s.id === patch.squadId)) {
+        merged.squadId = b.squadId;
       }
       return merged;
     });
@@ -1078,13 +1285,29 @@ export default function Page() {
             </div>
 
             {viewMode === "commander" ? (
-              <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Squad Loadout</p>
-                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">{selectedCount ? "Manual selection" : "Auto"}</p>
+              <div className="mt-4 space-y-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div className="rounded-xl border border-white/[0.06] bg-slate-950/35 p-3">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Project Squad Lanes</p>
+                  <div className="mt-2 grid gap-2 sm:grid-cols-3">
+                    {squadsView.map((squad) => (
+                      <div key={squad.id} className="rounded-lg border border-white/[0.06] bg-black/25 px-3 py-2">
+                        <p className="text-[10px] uppercase tracking-[0.14em] text-slate-300">{squad.name}</p>
+                        <p className="mt-1 text-[11px] text-cyan-200">Project {squad.projectTag}</p>
+                        <p className="mt-1 text-[11px] text-slate-400">
+                          {squad.members.length}/{SQUAD_SIZE} seats
+                        </p>
+                      </div>
+                    ))}
+                  </div>
                 </div>
 
-                <div className="grid gap-2 sm:grid-cols-2">
+                <div>
+                  <div className="mb-3 flex items-center justify-between">
+                    <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Squad Loadout</p>
+                    <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">{selectedCount ? "Manual selection" : "Auto"}</p>
+                  </div>
+
+                  <div className="grid gap-2 sm:grid-cols-2">
                   {Array.from({ length: 4 }).map((_, i) => {
                     const bot = loadoutUnits[i];
                     const slotLabel = ["Alpha", "Bravo", "Charlie", "Delta"][i];
@@ -1116,6 +1339,7 @@ export default function Page() {
                       </div>
                     );
                   })}
+                  </div>
                 </div>
               </div>
             ) : (
@@ -1131,6 +1355,9 @@ export default function Page() {
                   <p className="mt-1 text-xs text-slate-400">{selected ? `${selected.name} · ${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}</p>
                   <p className="mt-0.5 text-[11px] text-slate-500">
                     {selected?.provider} · {selected?.model}
+                  </p>
+                  <p className="mt-0.5 text-[11px] text-cyan-200/80">
+                    {(SQUADS.find((s) => s.id === selected?.squadId) ?? SQUADS[0]).name} · Project {selected?.projectTag}
                   </p>
                 </div>
                 <div className="grid gap-2">
@@ -1179,10 +1406,15 @@ export default function Page() {
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
-                    setRecruitDraft((prev) => ({
-                      ...prev,
-                      callsign: prev.callsign || nextAvailableCallsign(prev.archetype, bots),
-                    }));
+                    setRecruitDraft((prev) => {
+                      const autoSquad = firstSquadWithSpace(bots);
+                      return {
+                        ...prev,
+                        callsign: prev.callsign || nextAvailableCallsign(prev.archetype, bots),
+                        squadId: prev.squadId || "auto",
+                        projectTag: prev.projectTag || autoSquad.projectTag,
+                      };
+                    });
                     setShowRecruitMenu(true);
                   }}
                   className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:brightness-110"
@@ -1232,6 +1464,8 @@ export default function Page() {
               {bots.map((b) => {
                 const batchSelected = selectedBots.includes(b.id);
                 const a = ARCHETYPES[b.archetype];
+                const squad = SQUADS.find((s) => s.id === b.squadId) ?? SQUADS[0];
+                const seat = Number.isInteger(b.deskSlot) ? ((b.deskSlot as number) % SQUAD_SIZE) + 1 : 1;
 
                 return (
                   <motion.div
@@ -1259,6 +1493,9 @@ export default function Page() {
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
                           <p className="text-sm font-semibold text-white">[{b.callsign}]</p>
                           <p className="text-[11px] text-slate-400">{b.name} · {a.label}</p>
+                          <p className="text-[10px] text-cyan-200/85">
+                            {squad.name} · {b.projectTag || squad.projectTag} · Seat {seat}
+                          </p>
                         </button>
                       </div>
                       <div className="flex items-center gap-1.5">
@@ -1370,7 +1607,7 @@ export default function Page() {
               <div className="mb-5 flex items-center justify-between">
                 <div>
                   <h3 className="text-xl font-semibold tracking-tight text-white">Recruit Menu</h3>
-                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">Choose archetype, tier, and operational profile</p>
+                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">Choose archetype, project squad lane, and operational profile</p>
                 </div>
                 <button
                   className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
@@ -1420,6 +1657,23 @@ export default function Page() {
                   onChange={(v) => setRecruitDraft((p) => ({ ...p, callsign: normalizeCallsign(v) }))}
                 />
                 <Field label="Operator Name" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
+                <SelectField
+                  label="Squad Lane"
+                  value={recruitDraft.squadId}
+                  options={["auto", ...SQUADS.map((s) => s.id)]}
+                  onChange={(v) =>
+                    setRecruitDraft((p) => ({
+                      ...p,
+                      squadId: v,
+                      projectTag: p.projectTag || (SQUADS.find((s) => s.id === v)?.projectTag ?? p.projectTag),
+                    }))
+                  }
+                />
+                <Field
+                  label="Project Tag"
+                  value={recruitDraft.projectTag}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, projectTag: normalizeProjectTag(v) }))}
+                />
                 <SelectField
                   label="Tier"
                   value={recruitDraft.tier}
@@ -1495,6 +1749,13 @@ export default function Page() {
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Callsign" value={selected.callsign} onChange={(v) => updateBot({ callsign: v })} />
                 <Field label="Operator Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
+                <SelectField
+                  label="Squad"
+                  value={selected.squadId || SQUADS[0].id}
+                  options={SQUADS.map((s) => s.id)}
+                  onChange={(v) => updateBot({ squadId: v })}
+                />
+                <Field label="Project Tag" value={selected.projectTag || ""} onChange={(v) => updateBot({ projectTag: v })} />
                 <SelectField
                   label="Archetype"
                   value={selected.archetype}
