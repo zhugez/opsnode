@@ -19,6 +19,23 @@ This project includes external visual assets under free-to-use terms.
   - `public/assets/characters/analyst-card.png`
   - `public/assets/characters/medic-card.png`
 
+## 2) Kenney — Furniture Kit (via Poly Pizza mirror)
+- Primary source page: https://kenney.nl/assets/furniture-kit
+- Bundle mirror page used to pull individual models: https://poly.pizza/bundle/Furniture-Kit-NoG1sEUD1z
+- License: Creative Commons CC0 1.0 (Public Domain)
+- License link: https://creativecommons.org/publicdomain/zero/1.0/
+- Attribution requirement: Not required (optional/encouraged)
+
+### Files used in this repo
+All models below are downloaded as `.glb` files from Poly Pizza static hosting for the Kenney Furniture Kit items:
+- `public/assets/office/desk.glb` (model page: https://poly.pizza/m/6PbVkqPzEU)
+- `public/assets/office/desk_corner.glb` (model page: https://poly.pizza/m/LCfBX1FVJr)
+- `public/assets/office/desk_chair.glb` (model page: https://poly.pizza/m/CKSz6PB1vO)
+- `public/assets/office/computer_screen.glb` (model page: https://poly.pizza/m/V5Qo141OcB)
+- `public/assets/office/paneling.glb` (model page: https://poly.pizza/m/PcMUlGoC2C)
+- `public/assets/office/wall_window.glb` (model page: https://poly.pizza/m/qivZBDjfUM)
+- `public/assets/office/lamp_ceiling.glb` (model page: https://poly.pizza/m/AAJ1hFnGaH)
+
 ## Notes
 - All listed files above are either original Kenney CC0 assets or direct visual derivatives of those CC0 assets.
 - No additional third-party asset licenses are required for these files.

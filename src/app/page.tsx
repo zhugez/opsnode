@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Line } from "@react-three/drei";
+import { OrbitControls, Float, Line, Clone, useGLTF } from "@react-three/drei";
 import { Group, MeshBasicMaterial, MeshStandardMaterial } from "three";
 import { motion } from "framer-motion";
 import {
@@ -264,13 +264,21 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
     [1.85, 0.01, 0.68],
   ];
 
+  const desk = useGLTF("/assets/office/desk.glb");
+  const deskCorner = useGLTF("/assets/office/desk_corner.glb");
+  const deskChair = useGLTF("/assets/office/desk_chair.glb");
+  const paneling = useGLTF("/assets/office/paneling.glb");
+  const wallWindow = useGLTF("/assets/office/wall_window.glb");
+  const computerScreen = useGLTF("/assets/office/computer_screen.glb");
+  const lampCeiling = useGLTF("/assets/office/lamp_ceiling.glb");
+
   return (
     <>
       <color attach="background" args={["#0b0d11"]} />
-      <ambientLight intensity={0.44} color="#f4efe7" />
-      <directionalLight position={[2.4, 4.6, 3.2]} intensity={1.05} color="#fff4df" />
-      <directionalLight position={[-3.8, 2.2, -2.6]} intensity={0.33} color="#9caec6" />
-      <pointLight position={[0, 2.25, -0.1]} intensity={0.36} color="#ffe4c6" />
+      <ambientLight intensity={0.42} color="#f4efe7" />
+      <directionalLight position={[2.4, 4.6, 3.2]} intensity={0.95} color="#fff4df" />
+      <directionalLight position={[-3.8, 2.2, -2.6]} intensity={0.3} color="#9caec6" />
+      <pointLight position={[0, 2.25, -0.1]} intensity={0.22} color="#ffe4c6" />
 
       <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
         <planeGeometry args={[9, 6.8]} />
@@ -282,26 +290,19 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
         <meshStandardMaterial color="#1f242d" roughness={0.28} metalness={0.42} />
       </mesh>
 
-      <mesh position={[0, 1.02, -2.36]}>
-        <boxGeometry args={[6.8, 2.95, 0.08]} />
-        <meshStandardMaterial color="#1c2028" roughness={0.52} metalness={0.24} />
-      </mesh>
+      <group position={[0, -0.55, -2.35]} scale={[4.4, 2.4, 1]}>
+        <Clone object={paneling.scene} />
+      </group>
+      <group position={[-1.95, -0.55, -2.3]} scale={[1.8, 2.4, 1]}>
+        <Clone object={wallWindow.scene} />
+      </group>
+      <group position={[1.95, -0.55, -2.3]} scale={[1.8, 2.4, 1]}>
+        <Clone object={wallWindow.scene} />
+      </group>
 
-      <mesh position={[0, 1.04, -2.315]}>
-        <boxGeometry args={[5.2, 1.6, 0.02]} />
-        <meshStandardMaterial color="#cbc4b8" roughness={0.22} metalness={0.1} emissive="#b4aa97" emissiveIntensity={0.11} />
-      </mesh>
-
-      <mesh position={[0, 0.04, -0.24]}>
-        <boxGeometry args={[3.4, 0.12, 1.78]} />
-        <meshStandardMaterial color="#2b313d" roughness={0.31} metalness={0.49} />
-      </mesh>
-      {[-1.32, 1.32].map((x) => (
-        <mesh key={x} position={[x, -0.2, -0.24]}>
-          <boxGeometry args={[0.22, 0.45, 1.26]} />
-          <meshStandardMaterial color="#2a3038" roughness={0.58} metalness={0.2} />
-        </mesh>
-      ))}
+      <group position={[0, -0.49, -0.24]} scale={[1.2, 1.2, 1.2]}>
+        <Clone object={deskCorner.scene} />
+      </group>
 
       {Array.from({ length: DESK_SLOT_COUNT }).map((_, i) => {
         const [x, y, z] = unitSlotPosition(i);
@@ -315,20 +316,25 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
               <cylinderGeometry args={[0.154, 0.154, 0.016, 18]} />
               <meshStandardMaterial color="#232a33" roughness={0.72} metalness={0.16} />
             </mesh>
+            <group position={[0, -0.012, -0.1]} scale={[0.48, 0.48, 0.48]}>
+              <Clone object={desk.scene} />
+            </group>
+            <group position={[0, -0.012, 0.17]} rotation={[0, Math.PI, 0]} scale={[0.36, 0.36, 0.36]}>
+              <Clone object={deskChair.scene} />
+            </group>
           </group>
         );
       })}
 
       {[-1.02, -0.34, 0.34, 1.02].map((x, i) => (
-        <group key={i} position={[x, 0.39, -0.76]}>
-          <mesh>
-            <boxGeometry args={[0.45, 0.25, 0.025]} />
-            <meshStandardMaterial color="#dfd7ca" emissive="#a89f92" emissiveIntensity={0.08} roughness={0.22} metalness={0.14} />
-          </mesh>
-          <mesh position={[0, -0.155, 0]}>
-            <boxGeometry args={[0.07, 0.11, 0.07]} />
-            <meshStandardMaterial color="#6f7784" roughness={0.52} />
-          </mesh>
+        <group key={i} position={[x, 0.36, -0.82]} scale={[0.45, 0.45, 0.45]}>
+          <Clone object={computerScreen.scene} />
+        </group>
+      ))}
+
+      {[-1.2, -0.4, 0.4, 1.2].map((x, i) => (
+        <group key={`lamp-${i}`} position={[x, 1.8, -0.55]} scale={[0.7, 0.7, 0.7]}>
+          <Clone object={lampCeiling.scene} />
         </group>
       ))}
 
@@ -344,6 +350,14 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
     </>
   );
 }
+
+useGLTF.preload("/assets/office/desk.glb");
+useGLTF.preload("/assets/office/desk_corner.glb");
+useGLTF.preload("/assets/office/desk_chair.glb");
+useGLTF.preload("/assets/office/paneling.glb");
+useGLTF.preload("/assets/office/wall_window.glb");
+useGLTF.preload("/assets/office/computer_screen.glb");
+useGLTF.preload("/assets/office/lamp_ceiling.glb");
 
 function UnitActor({
   bot,
