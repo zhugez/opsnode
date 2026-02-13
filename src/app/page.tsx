@@ -990,7 +990,7 @@ export default function Page() {
 
               <Canvas camera={{ position: [0, 0.42, 4.6], fov: 52 }}>
                 <NodeCore
-                  bots={bots.filter((b) => b.enabled)}
+                  bots={bots}
                   selectedBots={selectedBots}
                   spawnedBotIds={spawnedBotIds}
                   onUnitSelect={(id, additive) => {
