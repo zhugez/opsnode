@@ -9,7 +9,6 @@ import {
   Brain,
   CheckCircle2,
   Clock3,
-  Plus,
   Save,
   Settings,
   Trash2,
@@ -19,7 +18,12 @@ import {
   Power,
   Sparkles,
   Radar,
+  Swords,
+  Shield,
 } from "lucide-react";
+
+type BotArchetype = "sentinel" | "sniper" | "analyst" | "medic";
+type BotTier = "I" | "II" | "III";
 
 type BotConfig = {
   id: string;
@@ -34,6 +38,9 @@ type BotConfig = {
   schedule: string;
   channel: string;
   lastRun: string;
+  archetype: BotArchetype;
+  tier: BotTier;
+  avatar: string;
 };
 
 type ConfigVersion = {
@@ -41,8 +48,59 @@ type ConfigVersion = {
   bots: BotConfig[];
 };
 
+type RecruitDraft = {
+  name: string;
+  archetype: BotArchetype;
+  tier: BotTier;
+  provider: BotConfig["provider"];
+  model: string;
+  thinking: BotConfig["thinking"];
+  priority: BotConfig["priority"];
+  allowedTools: string;
+  schedule: string;
+  channel: string;
+};
+
 const STORAGE_KEY = "opsnode.bots.v1";
 const VERSIONS_KEY = "opsnode.bots.versions.v1";
+
+const ARCHETYPES: Record<
+  BotArchetype,
+  { label: string; role: string; avatar: string; aura: string; chip: string; tone: string }
+> = {
+  sentinel: {
+    label: "Sentinel",
+    role: "Frontline defense",
+    avatar: "🛡️",
+    aura: "from-sky-400/20 via-cyan-500/10 to-transparent",
+    chip: "border-cyan-300/30 bg-cyan-500/12 text-cyan-100",
+    tone: "text-cyan-200",
+  },
+  sniper: {
+    label: "Sniper",
+    role: "Precision strike",
+    avatar: "🎯",
+    aura: "from-fuchsia-400/20 via-violet-500/10 to-transparent",
+    chip: "border-fuchsia-300/30 bg-fuchsia-500/12 text-fuchsia-100",
+    tone: "text-fuchsia-200",
+  },
+  analyst: {
+    label: "Analyst",
+    role: "Intel & planning",
+    avatar: "🧠",
+    aura: "from-indigo-400/20 via-blue-500/10 to-transparent",
+    chip: "border-indigo-300/30 bg-indigo-500/12 text-indigo-100",
+    tone: "text-indigo-200",
+  },
+  medic: {
+    label: "Medic",
+    role: "Recovery support",
+    avatar: "💉",
+    aura: "from-emerald-400/20 via-teal-500/10 to-transparent",
+    chip: "border-emerald-300/30 bg-emerald-500/12 text-emerald-100",
+    tone: "text-emerald-200",
+  },
+};
 
 const defaults: BotConfig[] = [
   {
@@ -58,6 +116,9 @@ const defaults: BotConfig[] = [
     schedule: "manual",
     channel: "telegram",
     lastRun: "-",
+    archetype: "analyst",
+    tier: "III",
+    avatar: "🧠",
   },
   {
     id: "zhu-ops",
@@ -72,8 +133,24 @@ const defaults: BotConfig[] = [
     schedule: "daily",
     channel: "telegram",
     lastRun: "-",
+    archetype: "sentinel",
+    tier: "II",
+    avatar: "🛡️",
   },
 ];
+
+const initialRecruitDraft: RecruitDraft = {
+  name: "",
+  archetype: "sentinel",
+  tier: "I",
+  provider: "openai-codex",
+  model: "gpt-5.3-codex",
+  thinking: "low",
+  priority: "low",
+  allowedTools: "exec, web_search",
+  schedule: "manual",
+  channel: "telegram",
+};
 
 function NodeCore() {
   const points: [number, number, number][] = [
@@ -126,11 +203,18 @@ function loadBots(): BotConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<BotConfig>[]) : defaults;
-    return parsed.map((b, i) => ({
-      ...defaults[Math.min(i, defaults.length - 1)],
-      ...b,
-      priority: (b.priority as BotConfig["priority"]) || "med",
-    })) as BotConfig[];
+    return parsed.map((b, i) => {
+      const fallback = defaults[Math.min(i, defaults.length - 1)] || defaults[0];
+      const archetype = (b.archetype as BotArchetype) || fallback.archetype || "sentinel";
+      return {
+        ...fallback,
+        ...b,
+        priority: (b.priority as BotConfig["priority"]) || fallback.priority || "med",
+        archetype,
+        tier: (b.tier as BotTier) || fallback.tier || "I",
+        avatar: b.avatar || ARCHETYPES[archetype].avatar,
+      };
+    }) as BotConfig[];
   } catch {
     return defaults;
   }
@@ -149,8 +233,10 @@ export default function Page() {
   const [selectedId, setSelectedId] = useState<string>(defaults[0].id);
   const [viewMode, setViewMode] = useState<"commander" | "detail">("commander");
   const [showConfig, setShowConfig] = useState(false);
+  const [showRecruitMenu, setShowRecruitMenu] = useState(false);
   const [selectedBots, setSelectedBots] = useState<string[]>([]);
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
+  const [recruitDraft, setRecruitDraft] = useState<RecruitDraft>(initialRecruitDraft);
 
   useEffect(() => setBots(loadBots()), []);
 
@@ -159,57 +245,73 @@ export default function Page() {
 
   const selectedBotUnits = useMemo(() => bots.filter((b) => selectedBots.includes(b.id)), [bots, selectedBots]);
 
-  const tacticalCells = useMemo(() => {
-    return Array.from({ length: 24 }).map((_, i) => {
-      const row = Math.floor(i / 6);
-      const col = i % 6;
-      const active = i % 5 === 0 || i === 7 || i === 18;
-      const focused = selectedCount > 0 && i < selectedCount;
-      const linked = focused ? selectedBotUnits[i] : undefined;
+  const loadoutUnits = useMemo(() => {
+    if (selectedBotUnits.length) return selectedBotUnits.slice(0, 4);
+    return bots.filter((b) => b.enabled).slice(0, 4);
+  }, [bots, selectedBotUnits]);
 
+  const tacticalCells = useMemo(() => {
+    return Array.from({ length: 12 }).map((_, i) => {
+      const row = Math.floor(i / 4);
+      const col = i % 4;
+      const linked = i < loadoutUnits.length ? loadoutUnits[i] : undefined;
       return {
         id: i,
         row,
         col,
-        active,
-        focused,
+        focused: !!linked,
         linked,
       };
     });
-  }, [selectedCount, selectedBotUnits]);
+  }, [loadoutUnits]);
 
   const persist = (next: BotConfig[]) => {
     setBots(next);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(next));
   };
 
-  const addBot = () => {
+  const recruitBot = () => {
     const id = `bot-${Date.now()}`;
+    const archetype = recruitDraft.archetype;
     const next: BotConfig[] = [
       ...bots,
       {
         id,
-        name: `Bot ${bots.length + 1}`,
+        name: recruitDraft.name.trim() || `${ARCHETYPES[archetype].label} ${bots.length + 1}`,
         status: "idle",
-        priority: "low",
+        priority: recruitDraft.priority,
         enabled: true,
-        model: "gpt-5.3-codex",
-        provider: "openai-codex",
-        thinking: "low",
-        allowedTools: "exec, web_search",
-        schedule: "manual",
-        channel: "telegram",
+        model: recruitDraft.model,
+        provider: recruitDraft.provider,
+        thinking: recruitDraft.thinking,
+        allowedTools: recruitDraft.allowedTools,
+        schedule: recruitDraft.schedule,
+        channel: recruitDraft.channel,
         lastRun: "-",
+        archetype,
+        tier: recruitDraft.tier,
+        avatar: ARCHETYPES[archetype].avatar,
       },
     ];
+
     saveSnapshot(bots);
     persist(next);
     setSelectedId(id);
+    setShowRecruitMenu(false);
+    setRecruitDraft(initialRecruitDraft);
+    setGatewayMsg(`Recruited ${next[next.length - 1].name} as ${ARCHETYPES[archetype].label}`);
   };
 
   const updateBot = (patch: Partial<BotConfig>) => {
     if (!selected) return;
-    const next = bots.map((b) => (b.id === selected.id ? { ...b, ...patch } : b));
+    const next = bots.map((b) => {
+      if (b.id !== selected.id) return b;
+      const merged = { ...b, ...patch };
+      if (patch.archetype) {
+        merged.avatar = ARCHETYPES[patch.archetype].avatar;
+      }
+      return merged;
+    });
     persist(next);
   };
 
@@ -250,7 +352,7 @@ export default function Page() {
       return { ...b, status: "running" as const };
     });
     persist(next);
-    setGatewayMsg(`Batch action applied: ${action} (${selectedBots.length} bots)`);
+    setGatewayMsg(`Batch action applied: ${action} (${selectedBots.length} units)`);
   };
 
   const sendGatewayAction = async (action: "summon" | "reset") => {
@@ -296,8 +398,8 @@ export default function Page() {
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
                 <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-200/55">OpsNode Directive Array</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Command Cockpit</h1>
-                <p className="mt-2 text-sm text-slate-300/80">Dark minimal control surface for bot orchestration</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Commander Bridge</h1>
+                <p className="mt-2 text-sm text-slate-300/80">Assemble your squad, tune loadouts, dispatch formations</p>
               </div>
               <span className="rounded-full border border-emerald-300/30 bg-emerald-400/8 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-200">
                 Live
@@ -347,16 +449,14 @@ export default function Page() {
                 >
                   <Radar size={12} /> {selectedCount} selected
                 </motion.span>
-                {selectedCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/25 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
-                    <Sparkles size={11} /> Formation synced
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/25 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
+                  <Sparkles size={11} /> {loadoutUnits.length} in loadout
+                </span>
               </div>
 
               <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-lg border border-cyan-100/10 bg-slate-950/45 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-cyan-100/75">
-                <span>3D Engagement Layer</span>
-                <span>{selectedCount > 0 ? `${selectedCount} units batch-linked` : "Select units for grouped orders"}</span>
+                <span>3D Deployment Layer</span>
+                <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units combat-ready` : "Recruit units to fill loadout"}</span>
               </div>
 
               <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
@@ -368,53 +468,63 @@ export default function Page() {
               <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-200/65">Tactical Map</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Sector Sweep · 24 Nodes</p>
+                    <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-200/65">Squad Loadout</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Alpha · Bravo · Charlie · Delta</p>
                   </div>
-                  <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-slate-300">
-                    <span className="inline-flex items-center gap-1">
-                      <i className="h-1.5 w-1.5 rounded-full bg-cyan-100 shadow-[0_0_8px_1px_rgba(103,232,249,0.55)]" /> Active
-                    </span>
-                    <span className="inline-flex items-center gap-1">
-                      <i className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_1px_rgba(196,181,253,0.6)]" /> Assigned
-                    </span>
-                  </div>
+                  <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{selectedCount ? "Manual selection" : "Auto from enabled units"}</div>
                 </div>
-                <div className="grid grid-cols-6 gap-2">
+
+                <div className="grid gap-2 sm:grid-cols-2">
+                  {Array.from({ length: 4 }).map((_, i) => {
+                    const bot = loadoutUnits[i];
+                    const slotLabel = ["Alpha", "Bravo", "Charlie", "Delta"][i];
+                    const a = bot ? ARCHETYPES[bot.archetype] : null;
+                    return (
+                      <div
+                        key={slotLabel}
+                        className={`relative overflow-hidden rounded-xl border p-3 ${
+                          bot
+                            ? "border-cyan-100/20 bg-slate-900/70"
+                            : "border-white/10 bg-slate-950/45"
+                        }`}
+                      >
+                        {bot && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a?.aura}`} />}
+                        <div className="relative flex items-center gap-3">
+                          <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/15 bg-slate-950/80 text-xl">
+                            {bot?.avatar || "◌"}
+                          </div>
+                          <div>
+                            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Slot {slotLabel}</p>
+                            <p className="text-sm font-semibold text-white">{bot?.name || "Unassigned"}</p>
+                            <p className="text-[11px] text-slate-300">{bot ? `${a?.label} · Tier ${bot.tier}` : "Recruit or select a unit"}</p>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+
+                <div className="mt-3 grid grid-cols-4 gap-2">
                   {tacticalCells.map((cell) => (
                     <motion.div
                       key={cell.id}
                       animate={
                         cell.focused
-                          ? { boxShadow: ["0 0 0 rgba(196,181,253,0)", "0 0 14px rgba(196,181,253,0.28)", "0 0 0 rgba(196,181,253,0)"] }
+                          ? { boxShadow: ["0 0 0 rgba(34,211,238,0)", "0 0 14px rgba(34,211,238,0.28)", "0 0 0 rgba(34,211,238,0)"] }
                           : undefined
                       }
                       transition={{ duration: 2.4, repeat: Infinity }}
-                      className={`relative h-9 overflow-hidden rounded-md border ${
+                      className={`relative h-10 overflow-hidden rounded-md border ${
                         cell.focused
-                          ? "border-violet-300/35 bg-gradient-to-br from-violet-400/14 via-slate-950/65 to-cyan-500/10"
+                          ? "border-cyan-300/35 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-indigo-500/10"
                           : "border-cyan-100/10 bg-gradient-to-br from-cyan-400/8 via-slate-950/65 to-blue-500/8"
                       }`}
                     >
-                      <div
-                        className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.45)_0%,transparent_64%)] ${
-                          cell.active ? "opacity-85" : "opacity-20"
-                        }`}
-                      />
-                      <div
-                        className={`absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${
-                          cell.focused
-                            ? "bg-violet-200 shadow-[0_0_10px_1px_rgba(196,181,253,0.65)]"
-                            : cell.active
-                              ? "bg-cyan-100 shadow-[0_0_10px_1px_rgba(103,232,249,0.65)]"
-                              : "bg-cyan-900/70"
-                        }`}
-                      />
                       <p className="absolute right-1.5 top-1 text-[9px] font-medium tracking-[0.14em] text-cyan-100/75">
                         {String.fromCharCode(65 + cell.row)}{cell.col + 1}
                       </p>
                       {cell.linked && (
-                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-violet-100">
+                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-cyan-50">
                           {cell.linked.name}
                         </p>
                       )}
@@ -428,13 +538,16 @@ export default function Page() {
                   <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/65">Selected Unit</p>
                   <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
                   <p className="mt-1 text-xs text-slate-300">
+                    {selected ? `${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}
+                  </p>
+                  <p className="mt-1 text-xs text-slate-400">
                     {selected?.provider} · {selected?.model}
                   </p>
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
                     <CheckCircle2 size={14} className="text-emerald-300" />
-                    Control plane integrity: {health}%
+                    Command integrity: {health}%
                   </div>
                   <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
                     <Clock3 size={14} className="text-cyan-200" />
@@ -447,9 +560,9 @@ export default function Page() {
         </motion.section>
 
         <section className="grid gap-4 lg:col-span-4">
-          <Card title="Bots" value={`${bots.length}`} sub={`${bots.filter((b) => b.enabled).length} enabled`} />
+          <Card title="Units" value={`${bots.length}`} sub={`${bots.filter((b) => b.enabled).length} active`} />
           <Card title="Health" value={`${health}%`} sub="Control plane availability" />
-          <Card title="Mode" value="Phase 2" sub="Bot manager + config drawer" />
+          <Card title="Loadout" value={`${loadoutUnits.length}/4`} sub="Squad slots occupied" />
           <Card title="Gateway" value="Bound" sub="/api/gateway-action wired" />
         </section>
 
@@ -457,13 +570,13 @@ export default function Page() {
           <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(56,189,248,0.06)_0%,transparent_45%,rgba(99,102,241,0.05)_100%)]" />
           <div className="relative">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-semibold tracking-tight text-white">Bot Manager</h2>
+              <h2 className="text-2xl font-semibold tracking-tight text-white">Roster Bay</h2>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={addBot}
+                  onClick={() => setShowRecruitMenu(true)}
                   className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
                 >
-                  <Plus size={14} /> Add Bot
+                  <Swords size={14} /> Recruit Menu
                 </button>
                 <button
                   onClick={rollback}
@@ -503,38 +616,41 @@ export default function Page() {
                 Clear
               </button>
               <p className="ml-auto pr-1 text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                {selectedCount > 0 ? "Batch command armed" : "Select bots to unlock batch actions"}
+                {selectedCount > 0 ? "Formation override armed" : "Select units to unlock formation actions"}
               </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
               {bots.map((b) => {
                 const batchSelected = selectedBots.includes(b.id);
+                const a = ARCHETYPES[b.archetype];
 
                 return (
                   <motion.div
                     whileHover={{ y: -2 }}
                     transition={{ duration: 0.18 }}
                     key={b.id}
-                    className={`rounded-2xl border p-4 backdrop-blur-xl transition ${
+                    className={`relative overflow-hidden rounded-2xl border p-4 backdrop-blur-xl transition ${
                       selectedId === b.id
                         ? "border-cyan-200/35 bg-gradient-to-br from-cyan-400/10 via-slate-900/72 to-indigo-500/10 shadow-[0_0_26px_-16px_rgba(34,211,238,0.7)]"
                         : "border-white/10 bg-slate-950/50 hover:border-cyan-100/25 hover:bg-slate-900/70"
                     } ${batchSelected ? "ring-1 ring-violet-300/35" : ""}`}
                   >
-                    <div className="mb-2 flex items-center justify-between gap-2">
-                      <div className="flex items-center gap-2">
+                    <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
+                    <div className="relative mb-3 flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-3">
                         <input
                           type="checkbox"
                           checked={batchSelected}
                           onChange={() => toggleBotSelection(b.id)}
-                          className="h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
+                          className="mt-1 h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
                         />
+                        <div className="flex h-11 w-11 items-center justify-center rounded-xl border border-white/15 bg-slate-950/75 text-2xl">
+                          {b.avatar}
+                        </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
                           <p className="text-base font-semibold text-white">{b.name}</p>
-                          <p className="mt-0.5 text-xs text-slate-300">
-                            {b.provider} · {b.model}
-                          </p>
+                          <p className="mt-0.5 text-xs text-slate-300">{a.label}</p>
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
@@ -543,16 +659,8 @@ export default function Page() {
                             grouped
                           </span>
                         )}
-                        <span
-                          className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
-                            b.priority === "high"
-                              ? "border border-rose-300/20 bg-rose-500/16 text-rose-200"
-                              : b.priority === "med"
-                                ? "border border-amber-300/20 bg-amber-500/16 text-amber-200"
-                                : "border border-emerald-300/20 bg-emerald-500/16 text-emerald-200"
-                          }`}
-                        >
-                          {b.priority}
+                        <span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${a.chip}`}>
+                          Tier {b.tier}
                         </span>
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
@@ -568,7 +676,15 @@ export default function Page() {
                       </div>
                     </div>
 
-                    <div className="mt-4 flex flex-wrap gap-2">
+                    <div className="relative mb-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
+                      <span className={`rounded-md border px-2 py-0.5 ${a.chip}`}>{a.role}</span>
+                      <span>·</span>
+                      <span>
+                        {b.provider} · {b.model}
+                      </span>
+                    </div>
+
+                    <div className="relative flex flex-wrap gap-2">
                       <button
                         onClick={() => {
                           setSelectedId(b.id);
@@ -576,7 +692,7 @@ export default function Page() {
                         }}
                         className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
                       >
-                        <Settings size={13} /> Config
+                        <Settings size={13} /> Loadout
                       </button>
                       <button
                         onClick={() => {
@@ -637,7 +753,7 @@ export default function Page() {
                 onClick={() => setShowConfig(true)}
                 className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-slate-900/55 px-4 py-2.5 text-slate-100 transition hover:border-white/30 hover:bg-white/8"
               >
-                <Settings size={16} /> Open Config Drawer
+                <Shield size={16} /> Open Loadout Panel
               </button>
             </div>
             <p className="mt-4 rounded-lg border border-cyan-100/10 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">
@@ -647,13 +763,115 @@ export default function Page() {
         </section>
       </div>
 
+      {showRecruitMenu && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/12 bg-slate-950/92 p-5 shadow-[0_24px_80px_-40px_rgba(34,211,238,0.68)] backdrop-blur-2xl md:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
+            <div className="relative">
+              <div className="mb-5 flex items-center justify-between">
+                <div>
+                  <h3 className="text-xl font-semibold tracking-tight text-white">Recruit Menu</h3>
+                  <p className="mt-1 text-xs uppercase tracking-[0.16em] text-slate-400">Choose archetype, tier, and operational profile</p>
+                </div>
+                <button
+                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
+                  onClick={() => setShowRecruitMenu(false)}
+                >
+                  Close
+                </button>
+              </div>
+
+              <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+                {(Object.keys(ARCHETYPES) as BotArchetype[]).map((key) => {
+                  const a = ARCHETYPES[key];
+                  const active = recruitDraft.archetype === key;
+                  return (
+                    <button
+                      key={key}
+                      onClick={() => setRecruitDraft((prev) => ({ ...prev, archetype: key }))}
+                      className={`relative overflow-hidden rounded-2xl border p-4 text-left transition ${
+                        active
+                          ? "border-cyan-300/45 bg-slate-900/80 shadow-[0_0_20px_-14px_rgba(34,211,238,0.9)]"
+                          : "border-white/10 bg-slate-900/45 hover:border-cyan-200/30"
+                      }`}
+                    >
+                      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
+                      <div className="relative">
+                        <p className="text-3xl">{a.avatar}</p>
+                        <p className={`mt-2 text-base font-semibold ${a.tone}`}>{a.label}</p>
+                        <p className="mt-1 text-xs text-slate-300">{a.role}</p>
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+
+              <div className="mt-4 grid gap-3 md:grid-cols-2">
+                <Field label="Callsign" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
+                <SelectField
+                  label="Tier"
+                  value={recruitDraft.tier}
+                  options={["I", "II", "III"]}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, tier: v as BotTier }))}
+                />
+                <SelectField
+                  label="Provider"
+                  value={recruitDraft.provider}
+                  options={["openai-codex", "google-gemini-cli"]}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, provider: v as BotConfig["provider"] }))}
+                />
+                <Field label="Model" value={recruitDraft.model} onChange={(v) => setRecruitDraft((p) => ({ ...p, model: v }))} />
+                <SelectField
+                  label="Thinking"
+                  value={recruitDraft.thinking}
+                  options={["low", "medium", "high"]}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, thinking: v as BotConfig["thinking"] }))}
+                />
+                <SelectField
+                  label="Priority"
+                  value={recruitDraft.priority}
+                  options={["low", "med", "high"]}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, priority: v as BotConfig["priority"] }))}
+                />
+                <Field
+                  label="Schedule"
+                  value={recruitDraft.schedule}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, schedule: v }))}
+                />
+                <Field
+                  label="Channel"
+                  value={recruitDraft.channel}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, channel: v }))}
+                />
+                <div className="md:col-span-2">
+                  <Field
+                    label="Allowed Tools"
+                    value={recruitDraft.allowedTools}
+                    onChange={(v) => setRecruitDraft((p) => ({ ...p, allowedTools: v }))}
+                  />
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  onClick={recruitBot}
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
+                >
+                  <Swords size={14} /> Recruit Unit
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {showConfig && selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
           <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/12 bg-slate-950/90 p-5 shadow-[0_24px_80px_-40px_rgba(34,211,238,0.68)] backdrop-blur-2xl md:p-6">
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
             <div className="relative">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-xl font-semibold tracking-tight text-white">Config · {selected.name}</h3>
+                <h3 className="text-xl font-semibold tracking-tight text-white">Loadout · {selected.name}</h3>
                 <button
                   className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
                   onClick={() => setShowConfig(false)}
@@ -664,20 +882,30 @@ export default function Page() {
 
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
+                <SelectField
+                  label="Archetype"
+                  value={selected.archetype}
+                  options={["sentinel", "sniper", "analyst", "medic"]}
+                  onChange={(v) => updateBot({ archetype: v as BotArchetype })}
+                />
+                <SelectField label="Tier" value={selected.tier} options={["I", "II", "III"]} onChange={(v) => updateBot({ tier: v as BotTier })} />
                 <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
-                <Field
+                <SelectField
                   label="Provider"
                   value={selected.provider}
+                  options={["openai-codex", "google-gemini-cli"]}
                   onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })}
                 />
-                <Field
+                <SelectField
                   label="Thinking"
                   value={selected.thinking}
+                  options={["low", "medium", "high"]}
                   onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })}
                 />
-                <Field
+                <SelectField
                   label="Priority"
                   value={selected.priority}
+                  options={["low", "med", "high"]}
                   onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })}
                 />
                 <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
@@ -696,7 +924,7 @@ export default function Page() {
                   }}
                   className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
                 >
-                  <Save size={14} /> Save Config
+                  <Save size={14} /> Save Loadout
                 </button>
               </div>
             </div>
@@ -758,6 +986,35 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
         onChange={(e) => onChange(e.target.value)}
         className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-cyan-300/45 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.1)]"
       />
+    </label>
+  );
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string;
+  value: string;
+  options: string[];
+  onChange: (v: string) => void;
+}) {
+  return (
+    <label className="block text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
+      {label}
+      <select
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-cyan-300/45 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.1)]"
+      >
+        {options.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
     </label>
   );
 }
