@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Line, Clone, useGLTF } from "@react-three/drei";
-import { Group, MeshBasicMaterial, MeshStandardMaterial } from "three";
+import { OrbitControls, Float, Line, Clone, useGLTF, useTexture } from "@react-three/drei";
+import { Group, MeshBasicMaterial, MeshStandardMaterial, SpriteMaterial } from "three";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -70,39 +70,71 @@ const VERSIONS_KEY = "opsnode.bots.versions.v1";
 
 const ARCHETYPES: Record<
   BotArchetype,
-  { label: string; role: string; avatar: string; aura: string; chip: string; tone: string }
+  {
+    label: string;
+    role: string;
+    avatar: string;
+    worldTexture: string;
+    worldScale: [number, number, number];
+    aura: string;
+    chip: string;
+    tone: string;
+    accent: string;
+    trim: string;
+    emissive: string;
+  }
 > = {
   sentinel: {
     label: "Sentinel",
     role: "Frontline defense",
-    avatar: "/assets/characters/sentinel-card.svg",
+    avatar: "/assets/characters/sentinel-card.png",
+    worldTexture: "/assets/characters/sentinel-card.png",
+    worldScale: [0.34, 0.38, 1],
     aura: "from-blue-300/18 via-sky-300/8 to-transparent",
     chip: "border-blue-200/28 bg-blue-400/12 text-blue-100",
     tone: "text-blue-200",
+    accent: "#8fb8ff",
+    trim: "#8a909a",
+    emissive: "#375a9a",
   },
   sniper: {
     label: "Sniper",
     role: "Precision strike",
-    avatar: "/assets/characters/sniper-card.svg",
+    avatar: "/assets/characters/sniper-card.png",
+    worldTexture: "/assets/characters/sniper-card.png",
+    worldScale: [0.34, 0.38, 1],
     aura: "from-violet-300/18 via-indigo-300/8 to-transparent",
     chip: "border-violet-200/28 bg-violet-400/12 text-violet-100",
     tone: "text-violet-200",
+    accent: "#bca8f0",
+    trim: "#8a8580",
+    emissive: "#5d4a8f",
   },
   analyst: {
     label: "Analyst",
     role: "Intel & planning",
-    avatar: "/assets/characters/analyst-card.svg",
+    avatar: "/assets/characters/analyst-card.png",
+    worldTexture: "/assets/characters/analyst-card.png",
+    worldScale: [0.34, 0.38, 1],
     aura: "from-cyan-200/16 via-slate-300/8 to-transparent",
     chip: "border-cyan-100/28 bg-cyan-300/10 text-cyan-50",
     tone: "text-cyan-100",
+    accent: "#90b2d8",
+    trim: "#7d8693",
+    emissive: "#436384",
   },
   medic: {
     label: "Medic",
     role: "Recovery support",
-    avatar: "/assets/characters/medic-card.svg",
+    avatar: "/assets/characters/medic-card.png",
+    worldTexture: "/assets/characters/medic-card.png",
+    worldScale: [0.34, 0.38, 1],
     aura: "from-teal-300/18 via-emerald-300/8 to-transparent",
     chip: "border-teal-200/28 bg-teal-400/12 text-teal-100",
     tone: "text-teal-200",
+    accent: "#8cbcab",
+    trim: "#7f8a84",
+    emissive: "#2f6f5b",
   },
 };
 
@@ -168,9 +200,8 @@ const initialRecruitDraft: RecruitDraft = {
   channel: "telegram",
 };
 
-function resolveAvatar(avatar: string | undefined, archetype: BotArchetype) {
-  if (!avatar || !avatar.startsWith("/")) return ARCHETYPES[archetype].avatar;
-  return avatar;
+function resolveAvatar(_avatar: string | undefined, archetype: BotArchetype) {
+  return ARCHETYPES[archetype].avatar;
 }
 
 function normalizeCallsign(v: string | undefined) {
@@ -194,16 +225,6 @@ function nextAvailableCallsign(archetype: BotArchetype, existing: BotConfig[]) {
 }
 
 type Vec3 = [number, number, number];
-
-const ARCHETYPE_RENDER: Record<
-  BotArchetype,
-  { shell: string; trim: string; accent: string; emissive: string; icon: string }
-> = {
-  sentinel: { shell: "#d8d2c9", trim: "#8a909a", accent: "#8fb8ff", emissive: "#375a9a", icon: "shield" },
-  sniper: { shell: "#d9d4cf", trim: "#8a8580", accent: "#bca8f0", emissive: "#5d4a8f", icon: "reticle" },
-  analyst: { shell: "#d7d3ce", trim: "#7d8693", accent: "#90b2d8", emissive: "#436384", icon: "core" },
-  medic: { shell: "#d5d7d2", trim: "#7f8a84", accent: "#8cbcab", emissive: "#2f6f5b", icon: "cross" },
-};
 
 const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string }> = {
   idle: { color: "#94a3b8", accent: "#cbd5e1" },
@@ -358,6 +379,9 @@ useGLTF.preload("/assets/office/paneling.glb");
 useGLTF.preload("/assets/office/wall_window.glb");
 useGLTF.preload("/assets/office/computer_screen.glb");
 useGLTF.preload("/assets/office/lamp_ceiling.glb");
+Object.values(ARCHETYPES).forEach((archetype) => {
+  useTexture.preload(archetype.worldTexture);
+});
 
 function UnitActor({
   bot,
@@ -379,14 +403,18 @@ function UnitActor({
   shouldSpawn: boolean;
 }) {
   const ref = useRef<Group>(null);
-  const bodyMatRef = useRef<MeshStandardMaterial>(null);
-  const headMatRef = useRef<MeshStandardMaterial>(null);
-  const iconMatRef = useRef<MeshStandardMaterial>(null);
+  const panelMatRef = useRef<MeshStandardMaterial>(null);
+  const portraitMatRef = useRef<SpriteMaterial>(null);
   const spawnGlowMatRef = useRef<MeshBasicMaterial>(null);
   const [hovered, setHovered] = useState(false);
   const spawnProgressRef = useRef(shouldSpawn ? 0 : 1);
-  const style = ARCHETYPE_RENDER[bot.archetype];
+  const style = ARCHETYPES[bot.archetype];
   const statusStyle = STATUS_STYLE[bot.status];
+  const portraitTexture = useTexture(style.worldTexture);
+
+  useEffect(() => {
+    portraitTexture.needsUpdate = true;
+  }, [portraitTexture]);
 
   useEffect(() => {
     if (shouldSpawn) spawnProgressRef.current = 0;
@@ -423,17 +451,12 @@ function UnitActor({
     const visibleOpacity = Math.min(1, Math.max(0.06, spawnEase));
     const glowIntensity = (1 - spawnEase) * 0.9;
 
-    if (bodyMatRef.current) {
-      bodyMatRef.current.opacity = visibleOpacity;
-      bodyMatRef.current.emissiveIntensity = (selected ? 0.34 : 0.12) + glowIntensity * 0.45;
+    if (panelMatRef.current) {
+      panelMatRef.current.opacity = Math.min(0.95, visibleOpacity * 0.95);
+      panelMatRef.current.emissiveIntensity = (selected ? 0.45 : 0.2) + glowIntensity * 0.35;
     }
-    if (headMatRef.current) {
-      headMatRef.current.opacity = visibleOpacity;
-      headMatRef.current.emissiveIntensity = 0.42 + glowIntensity * 0.3;
-    }
-    if (iconMatRef.current) {
-      iconMatRef.current.opacity = visibleOpacity;
-      iconMatRef.current.emissiveIntensity = 0.26 + glowIntensity * 0.25;
+    if (portraitMatRef.current) {
+      portraitMatRef.current.opacity = visibleOpacity;
     }
     if (spawnGlowMatRef.current) {
       spawnGlowMatRef.current.opacity = glowIntensity;
@@ -461,110 +484,24 @@ function UnitActor({
         <meshStandardMaterial color="#101828" roughness={0.9} metalness={0.14} />
       </mesh>
 
-      <mesh position={[0, 0.09, 0]}>
-        <capsuleGeometry args={[0.1, 0.2, 8, 14]} />
+      <mesh position={[0, 0.16, -0.01]}>
+        <boxGeometry args={[0.24, 0.34, 0.04]} />
         <meshStandardMaterial
-          ref={bodyMatRef}
+          ref={panelMatRef}
           transparent
-          color={style.shell}
+          color={style.trim}
           emissive={style.emissive}
-          emissiveIntensity={selected ? 0.28 : 0.1}
-          roughness={0.36}
-          metalness={0.54}
+          emissiveIntensity={selected ? 0.34 : 0.18}
+          roughness={0.34}
+          metalness={0.5}
         />
       </mesh>
 
-      <mesh position={[0, 0.27, 0]}>
-        <sphereGeometry args={[0.075, 16, 16]} />
-        <meshStandardMaterial color={style.trim} roughness={0.32} metalness={0.64} />
-      </mesh>
+      <sprite position={[0, 0.18, 0.02]} scale={style.worldScale}>
+        <spriteMaterial ref={portraitMatRef} map={portraitTexture} transparent depthWrite={false} />
+      </sprite>
 
-      <mesh position={[0, 0.27, 0.055]}>
-        <sphereGeometry args={[0.045, 12, 12]} />
-        <meshStandardMaterial ref={headMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.38} metalness={0.22} roughness={0.25} />
-      </mesh>
-
-      <mesh position={[-0.085, 0.12, 0]}>
-        <capsuleGeometry args={[0.028, 0.14, 6, 10]} />
-        <meshStandardMaterial color={style.trim} roughness={0.4} metalness={0.5} />
-      </mesh>
-      <mesh position={[0.085, 0.12, 0]}>
-        <capsuleGeometry args={[0.028, 0.14, 6, 10]} />
-        <meshStandardMaterial color={style.trim} roughness={0.4} metalness={0.5} />
-      </mesh>
-
-      {style.icon === "shield" && (
-        <group>
-          <mesh position={[0, 0.1, 0.165]}>
-            <boxGeometry args={[0.18, 0.2, 0.035]} />
-            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.16} roughness={0.28} metalness={0.52} />
-          </mesh>
-          <mesh position={[-0.12, 0.12, 0]}>
-            <boxGeometry args={[0.065, 0.18, 0.12]} />
-            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.58} />
-          </mesh>
-          <mesh position={[0.12, 0.12, 0]}>
-            <boxGeometry args={[0.065, 0.18, 0.12]} />
-            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.58} />
-          </mesh>
-        </group>
-      )}
-      {style.icon === "reticle" && (
-        <group>
-          <mesh position={[0, 0.08, 0.2]}>
-            <boxGeometry args={[0.035, 0.035, 0.24]} />
-            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.2} roughness={0.3} metalness={0.58} />
-          </mesh>
-          <mesh position={[0, 0.08, 0.305]}>
-            <torusGeometry args={[0.042, 0.008, 10, 24]} />
-            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.22} />
-          </mesh>
-          <mesh position={[0, 0.23, -0.08]} rotation={[0.12, 0, 0]}>
-            <coneGeometry args={[0.03, 0.13, 8]} />
-            <meshStandardMaterial color={style.trim} metalness={0.62} roughness={0.34} />
-          </mesh>
-        </group>
-      )}
-      {style.icon === "core" && (
-        <group>
-          <mesh position={[0, 0.08, 0.16]}>
-            <icosahedronGeometry args={[0.06, 0]} />
-            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.26} roughness={0.24} metalness={0.46} />
-          </mesh>
-          <mesh position={[0, 0.28, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.13, 0.008, 10, 42]} />
-            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.18} roughness={0.22} metalness={0.38} />
-          </mesh>
-          <mesh position={[0, 0.165, -0.1]}>
-            <boxGeometry args={[0.13, 0.07, 0.06]} />
-            <meshStandardMaterial color={style.trim} metalness={0.58} roughness={0.35} />
-          </mesh>
-        </group>
-      )}
-      {style.icon === "cross" && (
-        <group>
-          <mesh position={[0, 0.15, -0.105]}>
-            <boxGeometry args={[0.145, 0.18, 0.08]} />
-            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.52} />
-          </mesh>
-          <group position={[0, 0.09, 0.17]}>
-            <mesh>
-              <boxGeometry args={[0.035, 0.12, 0.035]} />
-              <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.2} roughness={0.28} metalness={0.48} />
-            </mesh>
-            <mesh>
-              <boxGeometry args={[0.12, 0.035, 0.035]} />
-              <meshStandardMaterial color={style.accent} transparent opacity={0.95} roughness={0.28} metalness={0.44} />
-            </mesh>
-          </group>
-          <mesh position={[0, 0.31, 0]} rotation={[Math.PI / 2, 0, 0]}>
-            <torusGeometry args={[0.1, 0.008, 8, 30]} />
-            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.16} />
-          </mesh>
-        </group>
-      )}
-
-      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      <mesh position={[0, 0.085, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <ringGeometry args={[0.17, 0.29, 32]} />
         <meshBasicMaterial ref={spawnGlowMatRef} color={style.accent} transparent opacity={0} />
       </mesh>
@@ -1034,7 +971,7 @@ export default function Page() {
                         {bot && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a?.aura}`} />}
                         <div className="relative flex items-center gap-3">
                           <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/80">
-                            {bot ? <UnitPortrait src={bot.avatar} alt={bot.name} /> : <span className="text-cyan-100/60">◌</span>}
+                            {bot ? <UnitPortrait src={ARCHETYPES[bot.archetype].avatar} alt={bot.name} /> : <span className="text-cyan-100/60">◌</span>}
                           </div>
                           <div>
                             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Slot {slotLabel}</p>
@@ -1083,7 +1020,7 @@ export default function Page() {
                   <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/65">Selected Unit</p>
                   {selected && (
                     <div className="mt-2 h-20 w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
-                      <UnitPortrait src={selected.avatar} alt={selected.name} className="h-full w-full object-cover" />
+                      <UnitPortrait src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full object-cover" />
                     </div>
                   )}
                   <p className="mt-2 text-xl font-semibold text-white">{selected ? `[${selected.callsign}]` : "-"}</p>
@@ -1200,7 +1137,7 @@ export default function Page() {
                           className="mt-1 h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
                         />
                         <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
-                          <UnitPortrait src={b.avatar} alt={b.name} />
+                          <UnitPortrait src={ARCHETYPES[b.archetype].avatar} alt={b.name} />
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
                           <p className="text-base font-semibold text-white">[{b.callsign}]</p>

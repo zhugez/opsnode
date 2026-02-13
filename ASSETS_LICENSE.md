@@ -1,33 +1,47 @@
 # External Assets & License Notes
 
-This project includes external visual assets under free-to-use terms.
+All non-code visual assets used for character portraits and office props are from **Kenney CC0** packs (public domain).
 
-## 1) Kenney — Mini Characters 1
+## 1) Character Assets (Roster + In-Scene Sprites)
+
+### Source pack
+- Pack: **Kenney — Mini Characters 1**
 - Source page: https://kenney.nl/assets/mini-characters-1
-- Direct download URL (listed by source page): https://kenney.nl/media/pages/assets/mini-characters-1/a745467fe1-1721210573/kenney_mini-characters.zip
-- License: Creative Commons CC0 1.0 (Public Domain) per source page
+- Download URL listed on source page: https://kenney.nl/media/pages/assets/mini-characters-1/a745467fe1-1721210573/kenney_mini-characters.zip
+- Preview image URL used for repo extraction: https://kenney.nl/media/pages/assets/mini-characters-1/7d4c88415c-1721210569/preview.png
+- License: **CC0 1.0 (Public Domain)**
 - License link: https://creativecommons.org/publicdomain/zero/1.0/
-- Attribution requirement: Not required (optional/encouraged by author)
+- Attribution: not required
 
 ### Files used in this repo
-- `public/assets/characters/kenney-mini-characters-preview.png`
-  - Downloaded preview image from the asset page:
-  - https://kenney.nl/media/pages/assets/mini-characters-1/7d4c88415c-1721210569/preview.png
-- Derived character card crops created from the preview image:
+- `public/assets/characters/kenney-mini-characters-preview.png` (source preview from Kenney)
+- Derived portrait crops (from the preview image):
   - `public/assets/characters/sentinel-card.png`
   - `public/assets/characters/sniper-card.png`
   - `public/assets/characters/analyst-card.png`
   - `public/assets/characters/medic-card.png`
 
-## 2) Kenney — Furniture Kit (via Poly Pizza mirror)
+### Stable archetype mapping (single source of truth in app code)
+- Sentinel → `/assets/characters/sentinel-card.png`
+- Sniper → `/assets/characters/sniper-card.png`
+- Analyst → `/assets/characters/analyst-card.png`
+- Medic → `/assets/characters/medic-card.png`
+
+These same files are used both in roster/menu portraits and in-world 3D sprite rendering.
+
+---
+
+## 2) Office Environment 3D Models
+
+### Source pack
+- Pack: **Kenney — Furniture Kit**
 - Primary source page: https://kenney.nl/assets/furniture-kit
-- Bundle mirror page used to pull individual models: https://poly.pizza/bundle/Furniture-Kit-NoG1sEUD1z
-- License: Creative Commons CC0 1.0 (Public Domain)
+- Mirror used to fetch individual `.glb` files: https://poly.pizza/bundle/Furniture-Kit-NoG1sEUD1z
+- License: **CC0 1.0 (Public Domain)**
 - License link: https://creativecommons.org/publicdomain/zero/1.0/
-- Attribution requirement: Not required (optional/encouraged)
+- Attribution: not required
 
 ### Files used in this repo
-All models below are downloaded as `.glb` files from Poly Pizza static hosting for the Kenney Furniture Kit items:
 - `public/assets/office/desk.glb` (model page: https://poly.pizza/m/6PbVkqPzEU)
 - `public/assets/office/desk_corner.glb` (model page: https://poly.pizza/m/LCfBX1FVJr)
 - `public/assets/office/desk_chair.glb` (model page: https://poly.pizza/m/CKSz6PB1vO)
@@ -36,6 +50,8 @@ All models below are downloaded as `.glb` files from Poly Pizza static hosting f
 - `public/assets/office/wall_window.glb` (model page: https://poly.pizza/m/qivZBDjfUM)
 - `public/assets/office/lamp_ceiling.glb` (model page: https://poly.pizza/m/AAJ1hFnGaH)
 
-## Notes
-- All listed files above are either original Kenney CC0 assets or direct visual derivatives of those CC0 assets.
-- No additional third-party asset licenses are required for these files.
+---
+
+## Summary
+- Character and office assets above are CC0/public-domain source assets (or direct derivative crops from CC0 source imagery).
+- No additional third-party license obligations are required for redistribution or commercial use.
