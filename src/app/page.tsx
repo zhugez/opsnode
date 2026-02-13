@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, Line, Clone, useGLTF, useTexture } from "@react-three/drei";
-import { Group, MeshBasicMaterial, MeshStandardMaterial, SpriteMaterial } from "three";
+import { Group, MeshBasicMaterial, MeshStandardMaterial, SpriteMaterial, Vector3 } from "three";
+import type { OrbitControls as OrbitControlsImpl } from "three-stdlib";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -21,6 +22,9 @@ import {
   Radar,
   Swords,
   Shield,
+  MousePointer2,
+  ZoomIn,
+  ZoomOut,
 } from "lucide-react";
 
 type BotArchetype = "sentinel" | "sniper" | "analyst" | "medic";
@@ -233,6 +237,9 @@ const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string 
 };
 
 const DESK_SLOT_COUNT = 12;
+const MIN_CAMERA_DISTANCE = 3.2;
+const MAX_CAMERA_DISTANCE = 7.4;
+const DEFAULT_CAMERA_DISTANCE = 4.6;
 
 function firstFreeDeskSlot(existing: BotConfig[]) {
   const used = new Set(existing.map((b) => b.deskSlot).filter((slot): slot is number => Number.isInteger(slot)));
@@ -553,12 +560,16 @@ function NodeCore({
   onUnitSelect,
   onClearSelection,
   spawnedBotIds,
+  zoomTarget,
+  onZoomDistance,
 }: {
   bots: BotConfig[];
   selectedBots: string[];
   onUnitSelect: (id: string, additive: boolean) => void;
   onClearSelection: () => void;
   spawnedBotIds: string[];
+  zoomTarget: number;
+  onZoomDistance: (distance: number) => void;
 }) {
   const squad = useMemo(
     () => [...bots].sort((a, b) => (a.deskSlot ?? Number.MAX_SAFE_INTEGER) - (b.deskSlot ?? Number.MAX_SAFE_INTEGER)).slice(0, DESK_SLOT_COUNT),
@@ -567,12 +578,36 @@ function NodeCore({
   const selectedSet = useMemo(() => new Set(selectedBots), [selectedBots]);
   const spawnedSet = useMemo(() => new Set(spawnedBotIds), [spawnedBotIds]);
   const grouped = selectedBots.length > 1;
+  const controlsRef = useRef<OrbitControlsImpl>(null);
+  const distanceRef = useRef<number>(DEFAULT_CAMERA_DISTANCE);
 
   const formationMap = useMemo(() => {
     const map = new Map<string, Vec3>();
     selectedBots.forEach((id, i) => map.set(id, formationSlot(i)));
     return map;
   }, [selectedBots]);
+
+  useEffect(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const nextDistance = Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, zoomTarget));
+    const camera = controls.object;
+    const offset = camera.position.clone().sub(controls.target);
+    if (offset.lengthSq() < 1e-6) offset.copy(new Vector3(0, 0.42, nextDistance));
+    offset.setLength(nextDistance);
+    camera.position.copy(controls.target.clone().add(offset));
+    controls.update();
+  }, [zoomTarget]);
+
+  useFrame(() => {
+    const controls = controlsRef.current;
+    if (!controls) return;
+    const distance = controls.object.position.distanceTo(controls.target);
+    if (Math.abs(distance - distanceRef.current) > 0.02) {
+      distanceRef.current = distance;
+      onZoomDistance(distance);
+    }
+  });
 
   return (
     <>
@@ -594,7 +629,21 @@ function NodeCore({
           />
         );
       })}
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.16} maxPolarAngle={Math.PI / 2.05} minPolarAngle={Math.PI / 2.9} />
+      <OrbitControls
+        ref={controlsRef}
+        enablePan={false}
+        enableZoom
+        zoomSpeed={0.65}
+        enableDamping
+        dampingFactor={0.08}
+        rotateSpeed={0.55}
+        autoRotate
+        autoRotateSpeed={0.16}
+        maxDistance={MAX_CAMERA_DISTANCE}
+        minDistance={MIN_CAMERA_DISTANCE}
+        maxPolarAngle={Math.PI / 2.05}
+        minPolarAngle={Math.PI / 2.9}
+      />
     </>
   );
 }
@@ -675,6 +724,8 @@ export default function Page() {
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
   const [recruitDraft, setRecruitDraft] = useState<RecruitDraft>(initialRecruitDraft);
   const [spawnedBotIds, setSpawnedBotIds] = useState<string[]>([]);
+  const [cameraDistance, setCameraDistance] = useState(DEFAULT_CAMERA_DISTANCE);
+  const [cameraDistanceTarget, setCameraDistanceTarget] = useState(DEFAULT_CAMERA_DISTANCE);
 
   useEffect(() => {
     const loaded = loadBots();
@@ -836,6 +887,11 @@ export default function Page() {
   };
 
   const health = Math.round((bots.filter((b) => b.enabled).length / Math.max(1, bots.length)) * 100);
+  const zoomPercent = Math.round(((cameraDistance - MIN_CAMERA_DISTANCE) / (MAX_CAMERA_DISTANCE - MIN_CAMERA_DISTANCE)) * 100);
+  const setDistanceTarget = (next: number) => {
+    const clamped = Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, Number(next.toFixed(2))));
+    setCameraDistanceTarget(clamped);
+  };
 
   const panelShell =
     "relative overflow-hidden rounded-[26px] border border-slate-200/10 bg-slate-900/45 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_28px_58px_-42px_rgba(59,130,246,0.45)]";
@@ -895,15 +951,15 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="relative h-[360px] overflow-hidden rounded-2xl border border-slate-200/14 bg-[linear-gradient(180deg,rgba(30,41,59,0.92)_0%,rgba(15,23,42,0.86)_58%,rgba(9,14,26,0.94)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_24px_60px_-44px_rgba(96,165,250,0.55)]">
-              <div className="pointer-events-none absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.06)_1px,transparent_1px)] [background-size:42px_42px]" />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(7,12,24,0.66)_100%)]" />
+            <div className="relative h-[384px] overflow-hidden rounded-[24px] border border-white/15 bg-[linear-gradient(160deg,rgba(20,28,42,0.95)_0%,rgba(12,17,29,0.96)_48%,rgba(7,11,20,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(125,211,252,0.08),0_28px_70px_-45px_rgba(14,165,233,0.52)]">
+              <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,rgba(148,163,184,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:52px_52px]" />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(125,211,252,0.14)_0%,transparent_48%),radial-gradient(circle_at_50%_100%,rgba(99,102,241,0.1)_0%,transparent_56%)]" />
 
               <motion.div
-                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-slate-100/12 to-transparent"
+                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-slate-100/10 to-transparent"
                 initial={{ x: -130, opacity: 0 }}
-                animate={{ x: 760, opacity: [0, 0.35, 0] }}
-                transition={{ duration: 5.6, repeat: Infinity, ease: "linear" }}
+                animate={{ x: 840, opacity: [0, 0.28, 0] }}
+                transition={{ duration: 6.4, repeat: Infinity, ease: "linear" }}
               />
 
               <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
@@ -911,7 +967,7 @@ export default function Page() {
                   key={selectedCount}
                   initial={{ scale: 0.9, opacity: 0.5 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/25 bg-slate-950/65 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100/85"
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/25 bg-slate-950/72 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100/90"
                 >
                   <Radar size={12} /> {selectedCount} selected
                 </motion.span>
@@ -920,16 +976,66 @@ export default function Page() {
                 </span>
               </div>
 
-              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-lg border border-slate-200/12 bg-slate-900/50 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-slate-100/80">
+              <div className="absolute right-4 top-4 z-10 flex gap-1.5 rounded-full border border-white/15 bg-slate-950/72 p-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-200 shadow-[0_8px_24px_-16px_rgba(2,6,23,0.8)]">
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><Activity size={11} /> Orbit</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><ZoomIn size={11} /> Zoom</span>
+                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><MousePointer2 size={11} /> Select</span>
+              </div>
+
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-xl border border-white/12 bg-slate-950/62 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-slate-100/80">
                 <span>HQ Environment Preview</span>
                 <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to fill roster"}</span>
               </div>
 
-              <Canvas camera={{ position: [0, 0.42, 4.6], fov: 52 }}>
+              <div className="absolute bottom-14 right-4 z-20 w-[220px] rounded-2xl border border-white/12 bg-slate-950/72 p-3 shadow-[0_16px_38px_-24px_rgba(14,165,233,0.5)] backdrop-blur-xl">
+                <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-slate-300">
+                  <span>Camera Zoom</span>
+                  <span className="text-cyan-100">{zoomPercent}%</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={() => setDistanceTarget(cameraDistanceTarget + 0.4)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                    aria-label="Zoom out"
+                  >
+                    <ZoomOut size={13} />
+                  </button>
+                  <input
+                    type="range"
+                    min={MIN_CAMERA_DISTANCE}
+                    max={MAX_CAMERA_DISTANCE}
+                    step={0.05}
+                    value={cameraDistanceTarget}
+                    onChange={(e) => setDistanceTarget(Number(e.target.value))}
+                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-300"
+                    aria-label="Camera zoom"
+                  />
+                  <button
+                    onClick={() => setDistanceTarget(cameraDistanceTarget - 0.4)}
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                    aria-label="Zoom in"
+                  >
+                    <ZoomIn size={13} />
+                  </button>
+                </div>
+                <button
+                  onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
+                  className="mt-2 w-full rounded-lg border border-white/12 bg-white/[0.03] px-2 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                >
+                  Reset View · {cameraDistance.toFixed(2)}m
+                </button>
+              </div>
+
+              <Canvas camera={{ position: [0, 0.42, DEFAULT_CAMERA_DISTANCE], fov: 52 }}>
                 <NodeCore
                   bots={bots}
                   selectedBots={selectedBots}
                   spawnedBotIds={spawnedBotIds}
+                  zoomTarget={cameraDistanceTarget}
+                  onZoomDistance={(distance) => {
+                    setCameraDistance(distance);
+                    setCameraDistanceTarget(distance);
+                  }}
                   onUnitSelect={(id, additive) => {
                     setSelectedId(id);
                     setSelectedBots((prev) => {
