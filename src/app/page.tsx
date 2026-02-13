@@ -77,46 +77,46 @@ const defaults: BotConfig[] = [
 
 function NodeCore() {
   const points: [number, number, number][] = [
-    [-2, 1.2, -1],
-    [-1, 0.3, 0.5],
+    [-1.9, 0.9, -0.8],
+    [-0.9, 0.25, 0.45],
     [0, 0, 0],
-    [1, -0.3, -0.4],
-    [2, 0.9, 0.8],
+    [0.95, -0.3, -0.45],
+    [1.85, 0.8, 0.75],
   ];
 
   return (
     <>
-      <ambientLight intensity={0.45} />
-      <pointLight position={[2.5, 2.2, 2.8]} intensity={1.3} color="#73e3ff" />
-      <pointLight position={[-2.2, -1.3, 1.1]} intensity={0.9} color="#6875ff" />
-      <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.9}>
-        <Sphere args={[1.1, 64, 64]}>
+      <ambientLight intensity={0.42} />
+      <pointLight position={[2.4, 2.1, 2.5]} intensity={1.1} color="#6fe8ff" />
+      <pointLight position={[-2.1, -1.2, 1.2]} intensity={0.65} color="#4b63ff" />
+      <Float speed={0.95} rotationIntensity={0.25} floatIntensity={0.48}>
+        <Sphere args={[1.06, 64, 64]}>
           <MeshDistortMaterial
-            color="#62d8ff"
-            emissive="#1a6286"
-            emissiveIntensity={0.7}
-            roughness={0.08}
-            metalness={0.45}
-            distort={0.3}
-            speed={2}
+            color="#78d9ff"
+            emissive="#17485f"
+            emissiveIntensity={0.65}
+            roughness={0.14}
+            metalness={0.38}
+            distort={0.17}
+            speed={1.35}
           />
         </Sphere>
       </Float>
-      <Float speed={0.8} rotationIntensity={0.25} floatIntensity={0.45}>
-        <mesh rotation={[Math.PI / 2.2, 0, 0]}>
-          <torusGeometry args={[1.65, 0.017, 18, 140]} />
-          <meshStandardMaterial color="#76d6ff" emissive="#24496d" emissiveIntensity={0.7} />
+      <Float speed={0.7} rotationIntensity={0.2} floatIntensity={0.35}>
+        <mesh rotation={[Math.PI / 2.15, 0, 0]}>
+          <torusGeometry args={[1.62, 0.014, 20, 160]} />
+          <meshStandardMaterial color="#82dfff" emissive="#1d3f5e" emissiveIntensity={0.55} />
         </mesh>
       </Float>
-      <Line points={points} color="#8fc7ff" lineWidth={1.2} transparent opacity={0.72} />
-      <Line points={[points[0], points[2], points[4]]} color="#bde8ff" lineWidth={0.9} transparent opacity={0.45} />
+      <Line points={points} color="#8fcbff" lineWidth={1} transparent opacity={0.52} />
+      <Line points={[points[0], points[2], points[4]]} color="#c5eaff" lineWidth={0.7} transparent opacity={0.35} />
       {points.map((p, i) => (
         <mesh key={i} position={p}>
-          <sphereGeometry args={[i === 2 ? 0.085 : 0.06, 18, 18]} />
-          <meshStandardMaterial color="#e5f8ff" emissive="#89e3ff" emissiveIntensity={0.9} />
+          <sphereGeometry args={[i === 2 ? 0.07 : 0.05, 16, 16]} />
+          <meshStandardMaterial color="#dff4ff" emissive="#7cdcff" emissiveIntensity={0.7} />
         </mesh>
       ))}
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.85} />
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.42} />
     </>
   );
 }
@@ -157,10 +157,7 @@ export default function Page() {
   const selected = useMemo(() => bots.find((b) => b.id === selectedId) || bots[0], [bots, selectedId]);
   const selectedCount = selectedBots.length;
 
-  const selectedBotUnits = useMemo(
-    () => bots.filter((b) => selectedBots.includes(b.id)),
-    [bots, selectedBots],
-  );
+  const selectedBotUnits = useMemo(() => bots.filter((b) => selectedBots.includes(b.id)), [bots, selectedBots]);
 
   const tacticalCells = useMemo(() => {
     return Array.from({ length: 24 }).map((_, i) => {
@@ -274,46 +271,45 @@ export default function Page() {
   const health = Math.round((bots.filter((b) => b.enabled).length / Math.max(1, bots.length)) * 100);
 
   const panelShell =
-    "relative overflow-hidden rounded-[28px] border border-cyan-100/10 bg-slate-950/40 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_-42px_rgba(56,189,248,0.8)]";
+    "relative overflow-hidden rounded-[26px] border border-white/10 bg-slate-950/55 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.07),0_26px_58px_-44px_rgba(34,211,238,0.65)]";
   const modeButton =
-    "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] transition duration-200";
+    "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] transition duration-200";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#03060d] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
+    <main className="relative min-h-screen overflow-hidden bg-[#04070f] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute -left-24 top-[-10%] h-[430px] w-[430px] rounded-full bg-cyan-500/15 blur-[130px]" />
-        <div className="absolute -right-20 top-[14%] h-[380px] w-[380px] rounded-full bg-blue-500/15 blur-[120px]" />
-        <div className="absolute bottom-[-16%] left-[12%] h-[340px] w-[340px] rounded-full bg-sky-300/8 blur-[120px]" />
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(17,31,54,0.95)_0%,rgba(6,10,18,0.98)_58%,rgba(2,4,10,1)_100%)]" />
-        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.06)_1px,transparent_1px)] [background-size:56px_56px]" />
+        <div className="absolute -left-20 top-[-12%] h-[420px] w-[420px] rounded-full bg-cyan-500/10 blur-[125px]" />
+        <div className="absolute -right-24 top-[16%] h-[380px] w-[380px] rounded-full bg-indigo-500/10 blur-[125px]" />
+        <div className="absolute bottom-[-20%] left-[18%] h-[310px] w-[310px] rounded-full bg-sky-300/6 blur-[120px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(20,30,52,0.84)_0%,rgba(7,11,21,0.93)_54%,rgba(3,5,12,1)_100%)]" />
+        <div className="absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,rgba(148,163,184,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.04)_1px,transparent_1px)] [background-size:64px_64px]" />
       </div>
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
         <motion.section
-          initial={{ opacity: 0, y: 14 }}
+          initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           className={`${panelShell} lg:col-span-8 p-5 md:p-7`}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(34,211,238,0.12)_0%,transparent_40%,rgba(59,130,246,0.12)_100%)]" />
-          <div className="pointer-events-none absolute -right-16 -top-14 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.08)_0%,transparent_42%,rgba(99,102,241,0.06)_100%)]" />
           <div className="relative">
-            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+            <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-200/70">OpsNode Directive Array</p>
+                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-200/55">OpsNode Directive Array</p>
                 <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Command Cockpit</h1>
-                <p className="mt-2 text-sm text-slate-300/90">3D command cockpit · Bot manager + config</p>
+                <p className="mt-2 text-sm text-slate-300/80">Dark minimal control surface for bot orchestration</p>
               </div>
-              <span className="rounded-full border border-emerald-300/35 bg-emerald-400/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-200 shadow-[0_0_24px_-10px_rgba(52,211,153,0.9)]">
+              <span className="rounded-full border border-emerald-300/30 bg-emerald-400/8 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-200">
                 Live
               </span>
             </div>
 
-            <div className="mb-4 inline-flex rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+            <div className="mb-4 inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
               <button
                 onClick={() => setViewMode("commander")}
                 className={`${modeButton} ${
                   viewMode === "commander"
-                    ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,1)]"
+                    ? "bg-cyan-300/90 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)]"
                     : "text-slate-300 hover:bg-white/8 hover:text-white"
                 }`}
               >
@@ -323,7 +319,7 @@ export default function Page() {
                 onClick={() => setViewMode("detail")}
                 className={`${modeButton} ${
                   viewMode === "detail"
-                    ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,1)]"
+                    ? "bg-cyan-300/90 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)]"
                     : "text-slate-300 hover:bg-white/8 hover:text-white"
                 }`}
               >
@@ -331,36 +327,36 @@ export default function Page() {
               </button>
             </div>
 
-            <div className="relative h-[380px] overflow-hidden rounded-2xl border border-cyan-100/15 bg-[radial-gradient(circle_at_50%_18%,rgba(14,116,144,0.45)_0%,rgba(2,6,23,0.76)_55%,rgba(2,6,23,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_28px_70px_-42px_rgba(56,189,248,0.85)]">
-              <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_right,rgba(125,211,252,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(125,211,252,0.06)_1px,transparent_1px)] [background-size:38px_38px]" />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(2,6,23,0.72)_100%)]" />
+            <div className="relative h-[360px] overflow-hidden rounded-2xl border border-cyan-100/12 bg-[radial-gradient(circle_at_50%_20%,rgba(14,116,144,0.26)_0%,rgba(2,6,23,0.74)_56%,rgba(2,6,23,0.96)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_60px_-44px_rgba(34,211,238,0.7)]">
+              <div className="pointer-events-none absolute inset-0 opacity-45 [background-image:linear-gradient(to_right,rgba(125,211,252,0.06)_1px,transparent_1px),linear-gradient(to_bottom,rgba(125,211,252,0.04)_1px,transparent_1px)] [background-size:42px_42px]" />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_34%,rgba(2,6,23,0.72)_100%)]" />
 
               <motion.div
-                className="pointer-events-none absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-cyan-300/10 to-transparent"
-                initial={{ x: -140, opacity: 0 }}
-                animate={{ x: 760, opacity: [0, 0.5, 0] }}
-                transition={{ duration: 4.8, repeat: Infinity, ease: "linear" }}
+                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-cyan-200/8 to-transparent"
+                initial={{ x: -130, opacity: 0 }}
+                animate={{ x: 760, opacity: [0, 0.35, 0] }}
+                transition={{ duration: 5.6, repeat: Infinity, ease: "linear" }}
               />
 
               <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
                 <motion.span
                   key={selectedCount}
-                  initial={{ scale: 0.86, opacity: 0.5 }}
+                  initial={{ scale: 0.9, opacity: 0.5 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/35 bg-slate-950/70 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100"
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/25 bg-slate-950/65 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100/85"
                 >
-                  <Radar size={12} /> {selectedCount} units selected
+                  <Radar size={12} /> {selectedCount} selected
                 </motion.span>
                 {selectedCount > 0 && (
-                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-emerald-100">
+                  <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/25 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
                     <Sparkles size={11} /> Formation synced
                   </span>
                 )}
               </div>
 
-              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-xl border border-cyan-100/12 bg-slate-950/50 px-3 py-2 text-[10px] uppercase tracking-[0.15em] text-cyan-100/80">
-                <span>Engagement Layer · 3D Area</span>
-                <span>{selectedCount > 0 ? `Batch-ready · ${selectedCount} operator units` : "Select units for grouped orders"}</span>
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-lg border border-cyan-100/10 bg-slate-950/45 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-cyan-100/75">
+                <span>3D Engagement Layer</span>
+                <span>{selectedCount > 0 ? `${selectedCount} units batch-linked` : "Select units for grouped orders"}</span>
               </div>
 
               <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
@@ -369,18 +365,18 @@ export default function Page() {
             </div>
 
             {viewMode === "commander" ? (
-              <div className="mt-4 rounded-2xl border border-cyan-100/12 bg-white/[0.03] p-4 backdrop-blur-xl">
+              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl">
                 <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
                   <div>
-                    <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/70">Tactical Map</p>
+                    <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-200/65">Tactical Map</p>
                     <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Sector Sweep · 24 Nodes</p>
                   </div>
                   <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-slate-300">
                     <span className="inline-flex items-center gap-1">
-                      <i className="h-2 w-2 rounded-full bg-cyan-100 shadow-[0_0_10px_1px_rgba(103,232,249,0.65)]" /> Active
+                      <i className="h-1.5 w-1.5 rounded-full bg-cyan-100 shadow-[0_0_8px_1px_rgba(103,232,249,0.55)]" /> Active
                     </span>
                     <span className="inline-flex items-center gap-1">
-                      <i className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_1px_rgba(252,211,77,0.55)]" /> Assigned
+                      <i className="h-1.5 w-1.5 rounded-full bg-violet-300 shadow-[0_0_8px_1px_rgba(196,181,253,0.6)]" /> Assigned
                     </span>
                   </div>
                 </div>
@@ -390,58 +386,57 @@ export default function Page() {
                       key={cell.id}
                       animate={
                         cell.focused
-                          ? { boxShadow: ["0 0 0 rgba(252,211,77,0)", "0 0 14px rgba(252,211,77,0.35)", "0 0 0 rgba(252,211,77,0)"] }
+                          ? { boxShadow: ["0 0 0 rgba(196,181,253,0)", "0 0 14px rgba(196,181,253,0.28)", "0 0 0 rgba(196,181,253,0)"] }
                           : undefined
                       }
-                      transition={{ duration: 2.2, repeat: Infinity }}
-                      className={`relative h-10 overflow-hidden rounded-md border ${
+                      transition={{ duration: 2.4, repeat: Infinity }}
+                      className={`relative h-9 overflow-hidden rounded-md border ${
                         cell.focused
-                          ? "border-amber-300/45 bg-gradient-to-br from-amber-400/18 via-slate-950/65 to-cyan-400/14"
-                          : "border-cyan-100/12 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-blue-500/12"
+                          ? "border-violet-300/35 bg-gradient-to-br from-violet-400/14 via-slate-950/65 to-cyan-500/10"
+                          : "border-cyan-100/10 bg-gradient-to-br from-cyan-400/8 via-slate-950/65 to-blue-500/8"
                       }`}
                     >
                       <div
-                        className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.55)_0%,transparent_62%)] ${
-                          cell.active ? "opacity-90" : "opacity-30"
+                        className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.45)_0%,transparent_64%)] ${
+                          cell.active ? "opacity-85" : "opacity-20"
                         }`}
                       />
                       <div
                         className={`absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${
                           cell.focused
-                            ? "bg-amber-200 shadow-[0_0_12px_2px_rgba(252,211,77,0.6)]"
+                            ? "bg-violet-200 shadow-[0_0_10px_1px_rgba(196,181,253,0.65)]"
                             : cell.active
-                              ? "bg-cyan-100 shadow-[0_0_12px_2px_rgba(103,232,249,0.7)]"
+                              ? "bg-cyan-100 shadow-[0_0_10px_1px_rgba(103,232,249,0.65)]"
                               : "bg-cyan-900/70"
                         }`}
                       />
-                      <p className="absolute right-1.5 top-1 text-[9px] font-medium tracking-[0.14em] text-cyan-100/80">
+                      <p className="absolute right-1.5 top-1 text-[9px] font-medium tracking-[0.14em] text-cyan-100/75">
                         {String.fromCharCode(65 + cell.row)}{cell.col + 1}
                       </p>
                       {cell.linked && (
-                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-amber-100">
+                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-violet-100">
                           {cell.linked.name}
                         </p>
                       )}
-                      <div className="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
                     </motion.div>
                   ))}
                 </div>
               </div>
             ) : (
-              <div className="mt-4 grid gap-3 rounded-2xl border border-cyan-100/12 bg-white/[0.03] p-4 backdrop-blur-xl sm:grid-cols-2">
-                <div className="rounded-xl border border-cyan-100/10 bg-slate-950/50 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/70">Selected Unit</p>
+              <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl sm:grid-cols-2">
+                <div className="rounded-xl border border-cyan-100/10 bg-slate-950/55 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/65">Selected Unit</p>
                   <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
                   <p className="mt-1 text-xs text-slate-300">
                     {selected?.provider} · {selected?.model}
                   </p>
                 </div>
                 <div className="grid gap-3">
-                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-200">
+                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
                     <CheckCircle2 size={14} className="text-emerald-300" />
                     Control plane integrity: {health}%
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-200">
+                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
                     <Clock3 size={14} className="text-cyan-200" />
                     Last event: {selected?.lastRun || "-"}
                   </div>
@@ -459,32 +454,32 @@ export default function Page() {
         </section>
 
         <section className={`${panelShell} lg:col-span-8 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(34,211,238,0.08)_0%,transparent_45%,rgba(96,165,250,0.08)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(56,189,248,0.06)_0%,transparent_45%,rgba(99,102,241,0.05)_100%)]" />
           <div className="relative">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
               <h2 className="text-2xl font-semibold tracking-tight text-white">Bot Manager</h2>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={addBot}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/40 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.95)] transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
                 >
                   <Plus size={14} /> Add Bot
                 </button>
                 <button
                   onClick={rollback}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-100/20 bg-slate-900/55 px-3.5 py-2 text-sm text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-900/50 px-3.5 py-2 text-sm text-slate-200 transition hover:border-cyan-200/30 hover:bg-cyan-300/8"
                 >
                   <RotateCcw size={14} /> Rollback
                 </button>
               </div>
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-100/12 bg-slate-900/45 p-2 text-xs">
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/38 p-2 text-xs">
               <motion.span
                 key={selectedCount}
                 initial={{ scale: 0.9, opacity: 0.6 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="rounded-lg border border-cyan-200/25 bg-cyan-400/10 px-2 py-1 text-cyan-100"
+                className="rounded-lg border border-cyan-200/20 bg-cyan-400/8 px-2 py-1 text-cyan-100"
               >
                 Selected: {selectedCount}
               </motion.span>
@@ -503,7 +498,7 @@ export default function Page() {
               <button
                 onClick={() => setSelectedBots([])}
                 disabled={!selectedCount}
-                className="rounded-lg border border-white/20 px-2 py-1 text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-lg border border-white/18 px-2 py-1 text-slate-300 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-45"
               >
                 Clear
               </button>
@@ -519,13 +514,13 @@ export default function Page() {
                 return (
                   <motion.div
                     whileHover={{ y: -2 }}
-                    transition={{ duration: 0.2 }}
+                    transition={{ duration: 0.18 }}
                     key={b.id}
                     className={`rounded-2xl border p-4 backdrop-blur-xl transition ${
                       selectedId === b.id
-                        ? "border-cyan-200/45 bg-gradient-to-br from-cyan-400/16 via-slate-900/70 to-blue-500/14 shadow-[0_0_34px_-18px_rgba(34,211,238,0.9)]"
-                        : "border-white/10 bg-slate-950/55 hover:border-cyan-100/30 hover:bg-slate-900/72"
-                    } ${batchSelected ? "ring-1 ring-amber-300/45" : ""}`}
+                        ? "border-cyan-200/35 bg-gradient-to-br from-cyan-400/10 via-slate-900/72 to-indigo-500/10 shadow-[0_0_26px_-16px_rgba(34,211,238,0.7)]"
+                        : "border-white/10 bg-slate-950/50 hover:border-cyan-100/25 hover:bg-slate-900/70"
+                    } ${batchSelected ? "ring-1 ring-violet-300/35" : ""}`}
                   >
                     <div className="mb-2 flex items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
@@ -533,7 +528,7 @@ export default function Page() {
                           type="checkbox"
                           checked={batchSelected}
                           onChange={() => toggleBotSelection(b.id)}
-                          className="h-4 w-4 rounded border-cyan-200/40 bg-slate-900 text-cyan-300"
+                          className="h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
                         />
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
                           <p className="text-base font-semibold text-white">{b.name}</p>
@@ -544,17 +539,17 @@ export default function Page() {
                       </div>
                       <div className="flex items-center gap-2">
                         {batchSelected && (
-                          <span className="rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-amber-100">
+                          <span className="rounded-full border border-violet-300/30 bg-violet-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
                             grouped
                           </span>
                         )}
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
                             b.priority === "high"
-                              ? "border border-rose-300/20 bg-rose-500/20 text-rose-200"
+                              ? "border border-rose-300/20 bg-rose-500/16 text-rose-200"
                               : b.priority === "med"
-                                ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
-                                : "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                                ? "border border-amber-300/20 bg-amber-500/16 text-amber-200"
+                                : "border border-emerald-300/20 bg-emerald-500/16 text-emerald-200"
                           }`}
                         >
                           {b.priority}
@@ -562,10 +557,10 @@ export default function Page() {
                         <span
                           className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
                             b.status === "running"
-                              ? "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                              ? "border border-emerald-300/20 bg-emerald-500/16 text-emerald-200"
                               : b.status === "paused"
-                                ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
-                                : "border border-slate-300/20 bg-slate-500/30 text-slate-200"
+                                ? "border border-amber-300/20 bg-amber-500/16 text-amber-200"
+                                : "border border-slate-300/20 bg-slate-500/25 text-slate-200"
                           }`}
                         >
                           {b.status}
@@ -579,7 +574,7 @@ export default function Page() {
                           setSelectedId(b.id);
                           setShowConfig(true);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
                       >
                         <Settings size={13} /> Config
                       </button>
@@ -592,7 +587,7 @@ export default function Page() {
                           );
                           persist(next);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
                       >
                         {b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}
                         {b.status === "paused" ? "Resume" : "Pause"}
@@ -602,13 +597,13 @@ export default function Page() {
                           const next = bots.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x));
                           persist(next);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
                       >
                         <Power size={13} /> {b.enabled ? "Disable" : "Enable"}
                       </button>
                       <button
                         onClick={() => deleteBot(b.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300/22 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/14"
+                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300/20 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/12"
                       >
                         <Trash2 size={13} /> Delete
                       </button>
@@ -621,31 +616,31 @@ export default function Page() {
         </section>
 
         <section className={`${panelShell} lg:col-span-4 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(34,211,238,0.08)_0%,transparent_35%,rgba(59,130,246,0.1)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(56,189,248,0.07)_0%,transparent_36%,rgba(99,102,241,0.08)_100%)]" />
           <div className="relative">
             <h2 className="text-2xl font-semibold tracking-tight text-white">Quick Actions</h2>
             <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Gateway Dispatch</p>
             <div className="mt-5 space-y-3">
               <button
                 onClick={() => sendGatewayAction("summon")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2.5 font-medium text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)] transition hover:brightness-110"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2.5 font-medium text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
               >
                 <Activity size={16} /> Summon All
               </button>
               <button
                 onClick={() => sendGatewayAction("reset")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-100/22 bg-slate-900/60 px-4 py-2.5 text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-100/20 bg-slate-900/58 px-4 py-2.5 text-cyan-100 transition hover:border-cyan-200/32 hover:bg-cyan-300/8"
               >
                 <Brain size={16} /> Reset Context
               </button>
               <button
                 onClick={() => setShowConfig(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/18 bg-slate-900/55 px-4 py-2.5 text-slate-100 transition hover:border-white/35 hover:bg-white/10"
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-slate-900/55 px-4 py-2.5 text-slate-100 transition hover:border-white/30 hover:bg-white/8"
               >
                 <Settings size={16} /> Open Config Drawer
               </button>
             </div>
-            <p className="mt-4 rounded-lg border border-cyan-100/12 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">
+            <p className="mt-4 rounded-lg border border-cyan-100/10 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">
               {gatewayMsg || "Gateway ready"}
             </p>
           </div>
@@ -654,13 +649,13 @@ export default function Page() {
 
       {showConfig && selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-cyan-100/20 bg-slate-950/85 p-5 shadow-[0_26px_80px_-35px_rgba(15,118,110,0.7)] backdrop-blur-2xl md:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(34,211,238,0.09)_0%,transparent_40%,rgba(59,130,246,0.1)_100%)]" />
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/12 bg-slate-950/90 p-5 shadow-[0_24px_80px_-40px_rgba(34,211,238,0.68)] backdrop-blur-2xl md:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
             <div className="relative">
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="text-xl font-semibold tracking-tight text-white">Config · {selected.name}</h3>
                 <button
-                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
                   onClick={() => setShowConfig(false)}
                 >
                   Close
@@ -688,11 +683,7 @@ export default function Page() {
                 <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
                 <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
                 <div className="md:col-span-2">
-                  <Field
-                    label="Allowed Tools"
-                    value={selected.allowedTools}
-                    onChange={(v) => updateBot({ allowedTools: v })}
-                  />
+                  <Field label="Allowed Tools" value={selected.allowedTools} onChange={(v) => updateBot({ allowedTools: v })} />
                 </div>
               </div>
 
@@ -703,7 +694,7 @@ export default function Page() {
                     persist(bots);
                     setShowConfig(false);
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)] transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
                 >
                   <Save size={14} /> Save Config
                 </button>
@@ -718,9 +709,9 @@ export default function Page() {
 
 function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-cyan-100/12 bg-white/[0.04] p-4 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_55px_-36px_rgba(34,211,238,0.8)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/55 to-transparent" />
-      <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/75">{title}</p>
+    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_50px_-38px_rgba(34,211,238,0.65)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
+      <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/70">{title}</p>
       <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
       <p className="mt-1 text-xs text-slate-300">{sub}</p>
     </div>
@@ -740,12 +731,12 @@ function BatchButton({
 }) {
   const toneClass =
     tone === "emerald"
-      ? "border-emerald-300/25 text-emerald-200 hover:bg-emerald-500/10"
+      ? "border-emerald-300/20 text-emerald-200 hover:bg-emerald-500/8"
       : tone === "rose"
-        ? "border-rose-300/25 text-rose-200 hover:bg-rose-500/10"
+        ? "border-rose-300/20 text-rose-200 hover:bg-rose-500/8"
         : tone === "amber"
-          ? "border-amber-300/25 text-amber-200 hover:bg-amber-500/10"
-          : "border-cyan-300/25 text-cyan-200 hover:bg-cyan-500/10";
+          ? "border-amber-300/20 text-amber-200 hover:bg-amber-500/8"
+          : "border-cyan-300/20 text-cyan-200 hover:bg-cyan-500/8";
 
   return (
     <button
@@ -765,7 +756,7 @@ function Field({ label, value, onChange }: { label: string; value: string; onCha
       <input
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] outline-none transition focus:border-cyan-300/55 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.04)] outline-none transition focus:border-cyan-300/45 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.1)]"
       />
     </label>
   );
