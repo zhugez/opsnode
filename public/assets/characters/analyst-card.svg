@@ -1,0 +1,27 @@
+<svg width="160" height="170" viewBox="0 0 160 170" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="bg" x1="12" y1="8" x2="148" y2="162" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#102437"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+    <linearGradient id="core" x1="80" y1="48" x2="80" y2="124" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#E2E8F0"/>
+      <stop offset="1" stop-color="#94A3B8"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="80" y1="62" x2="80" y2="106" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#BFDBFE"/>
+      <stop offset="1" stop-color="#60A5FA"/>
+    </linearGradient>
+  </defs>
+  <rect x="5" y="5" width="150" height="160" rx="18" fill="url(#bg)" stroke="#334155"/>
+  <rect x="18" y="14" width="124" height="140" rx="14" fill="#0B1627" stroke="#155E75"/>
+  <rect x="56" y="48" width="48" height="62" rx="16" fill="url(#core)" stroke="#CBD5E1"/>
+  <circle cx="80" cy="53" r="14" fill="#94A3B8"/>
+  <rect x="68" y="49" width="24" height="10" rx="5" fill="url(#accent)"/>
+  <circle cx="80" cy="53" r="23" stroke="#7DD3FC" stroke-opacity="0.65"/>
+  <path d="M80 70L89 85L80 100L71 85L80 70Z" fill="#93C5FD"/>
+  <rect x="43" y="80" width="24" height="12" rx="6" fill="#64748B"/>
+  <rect x="93" y="80" width="24" height="12" rx="6" fill="#64748B"/>
+  <rect x="63" y="103" width="34" height="8" rx="4" fill="#7DD3FC" fill-opacity="0.45"/>
+  <circle cx="80" cy="136" r="15" fill="#0A1A2C" stroke="#60A5FA" stroke-opacity="0.55"/>
+</svg>

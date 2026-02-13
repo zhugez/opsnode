@@ -75,34 +75,34 @@ const ARCHETYPES: Record<
   sentinel: {
     label: "Sentinel",
     role: "Frontline defense",
-    avatar: "/assets/characters/sentinel-card.png",
-    aura: "from-sky-400/20 via-cyan-500/10 to-transparent",
-    chip: "border-cyan-300/30 bg-cyan-500/12 text-cyan-100",
-    tone: "text-cyan-200",
+    avatar: "/assets/characters/sentinel-card.svg",
+    aura: "from-blue-300/18 via-sky-300/8 to-transparent",
+    chip: "border-blue-200/28 bg-blue-400/12 text-blue-100",
+    tone: "text-blue-200",
   },
   sniper: {
     label: "Sniper",
     role: "Precision strike",
-    avatar: "/assets/characters/sniper-card.png",
-    aura: "from-fuchsia-400/20 via-violet-500/10 to-transparent",
-    chip: "border-fuchsia-300/30 bg-fuchsia-500/12 text-fuchsia-100",
-    tone: "text-fuchsia-200",
+    avatar: "/assets/characters/sniper-card.svg",
+    aura: "from-violet-300/18 via-indigo-300/8 to-transparent",
+    chip: "border-violet-200/28 bg-violet-400/12 text-violet-100",
+    tone: "text-violet-200",
   },
   analyst: {
     label: "Analyst",
     role: "Intel & planning",
-    avatar: "/assets/characters/analyst-card.png",
-    aura: "from-indigo-400/20 via-blue-500/10 to-transparent",
-    chip: "border-indigo-300/30 bg-indigo-500/12 text-indigo-100",
-    tone: "text-indigo-200",
+    avatar: "/assets/characters/analyst-card.svg",
+    aura: "from-cyan-200/16 via-slate-300/8 to-transparent",
+    chip: "border-cyan-100/28 bg-cyan-300/10 text-cyan-50",
+    tone: "text-cyan-100",
   },
   medic: {
     label: "Medic",
     role: "Recovery support",
-    avatar: "/assets/characters/medic-card.png",
-    aura: "from-emerald-400/20 via-teal-500/10 to-transparent",
-    chip: "border-emerald-300/30 bg-emerald-500/12 text-emerald-100",
-    tone: "text-emerald-200",
+    avatar: "/assets/characters/medic-card.svg",
+    aura: "from-teal-300/18 via-emerald-300/8 to-transparent",
+    chip: "border-teal-200/28 bg-teal-400/12 text-teal-100",
+    tone: "text-teal-200",
   },
 };
 
@@ -197,12 +197,12 @@ type Vec3 = [number, number, number];
 
 const ARCHETYPE_RENDER: Record<
   BotArchetype,
-  { color: string; accent: string; icon: string }
+  { shell: string; trim: string; accent: string; emissive: string; icon: string }
 > = {
-  sentinel: { color: "#22d3ee", accent: "#67e8f9", icon: "shield" },
-  sniper: { color: "#d946ef", accent: "#f0abfc", icon: "reticle" },
-  analyst: { color: "#6366f1", accent: "#a5b4fc", icon: "core" },
-  medic: { color: "#10b981", accent: "#6ee7b7", icon: "cross" },
+  sentinel: { shell: "#cbd5e1", trim: "#94a3b8", accent: "#7dd3fc", emissive: "#0ea5e9", icon: "shield" },
+  sniper: { shell: "#d4d4d8", trim: "#a1a1aa", accent: "#c4b5fd", emissive: "#8b5cf6", icon: "reticle" },
+  analyst: { shell: "#cbd5e1", trim: "#94a3b8", accent: "#93c5fd", emissive: "#3b82f6", icon: "core" },
+  medic: { shell: "#d1fae5", trim: "#99f6e4", accent: "#5eead4", emissive: "#14b8a6", icon: "cross" },
 };
 
 const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string }> = {
@@ -443,71 +443,116 @@ function UnitActor({
       onPointerOut={() => setHovered(false)}
       onPointerDown={onPointerDown}
     >
-      <mesh position={[0, -0.03, 0]}>
-        <cylinderGeometry args={[0.18, 0.24, 0.05, 20]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.95} metalness={0.12} />
+      <mesh position={[0, -0.035, 0]}>
+        <cylinderGeometry args={[0.2, 0.26, 0.055, 24]} />
+        <meshStandardMaterial color="#101828" roughness={0.9} metalness={0.14} />
       </mesh>
 
-      <mesh position={[0, 0.08, 0]}>
-        {bot.archetype === "sentinel" && <boxGeometry args={[0.24, 0.24, 0.24]} />}
-        {bot.archetype === "sniper" && <coneGeometry args={[0.16, 0.33, 14]} />}
-        {bot.archetype === "analyst" && <octahedronGeometry args={[0.19, 0]} />}
-        {bot.archetype === "medic" && <capsuleGeometry args={[0.1, 0.18, 6, 12]} />}
+      <mesh position={[0, 0.09, 0]}>
+        <capsuleGeometry args={[0.1, 0.2, 8, 14]} />
         <meshStandardMaterial
           ref={bodyMatRef}
           transparent
-          color={style.color}
-          emissive={style.color}
-          emissiveIntensity={selected ? 0.34 : 0.12}
-          roughness={0.42}
-          metalness={0.2}
+          color={style.shell}
+          emissive={style.emissive}
+          emissiveIntensity={selected ? 0.28 : 0.1}
+          roughness={0.36}
+          metalness={0.54}
         />
       </mesh>
 
-      <mesh position={[0, 0.28, 0]}>
-        <sphereGeometry args={[0.055, 12, 12]} />
-        <meshStandardMaterial ref={headMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.42} />
+      <mesh position={[0, 0.27, 0]}>
+        <sphereGeometry args={[0.075, 16, 16]} />
+        <meshStandardMaterial color={style.trim} roughness={0.32} metalness={0.64} />
+      </mesh>
+
+      <mesh position={[0, 0.27, 0.055]}>
+        <sphereGeometry args={[0.045, 12, 12]} />
+        <meshStandardMaterial ref={headMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.38} metalness={0.22} roughness={0.25} />
+      </mesh>
+
+      <mesh position={[-0.085, 0.12, 0]}>
+        <capsuleGeometry args={[0.028, 0.14, 6, 10]} />
+        <meshStandardMaterial color={style.trim} roughness={0.4} metalness={0.5} />
+      </mesh>
+      <mesh position={[0.085, 0.12, 0]}>
+        <capsuleGeometry args={[0.028, 0.14, 6, 10]} />
+        <meshStandardMaterial color={style.trim} roughness={0.4} metalness={0.5} />
       </mesh>
 
       {style.icon === "shield" && (
-        <mesh position={[0, 0.08, 0.16]}>
-          <cylinderGeometry args={[0.07, 0.045, 0.04, 6]} />
-          <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} roughness={0.3} metalness={0.45} emissive={style.accent} emissiveIntensity={0.2} />
-        </mesh>
+        <group>
+          <mesh position={[0, 0.1, 0.165]}>
+            <boxGeometry args={[0.18, 0.2, 0.035]} />
+            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.16} roughness={0.28} metalness={0.52} />
+          </mesh>
+          <mesh position={[-0.12, 0.12, 0]}>
+            <boxGeometry args={[0.065, 0.18, 0.12]} />
+            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.58} />
+          </mesh>
+          <mesh position={[0.12, 0.12, 0]}>
+            <boxGeometry args={[0.065, 0.18, 0.12]} />
+            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.58} />
+          </mesh>
+        </group>
       )}
       {style.icon === "reticle" && (
-        <group position={[0, 0.08, 0.16]}>
-          <mesh>
-            <torusGeometry args={[0.07, 0.01, 8, 24]} />
-            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.3} />
+        <group>
+          <mesh position={[0, 0.08, 0.2]}>
+            <boxGeometry args={[0.035, 0.035, 0.24]} />
+            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.2} roughness={0.3} metalness={0.58} />
           </mesh>
-          <mesh rotation={[0, 0, Math.PI / 2]}>
-            <boxGeometry args={[0.12, 0.006, 0.006]} />
-            <meshStandardMaterial color={style.accent} transparent opacity={0.95} />
+          <mesh position={[0, 0.08, 0.305]}>
+            <torusGeometry args={[0.042, 0.008, 10, 24]} />
+            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.22} />
+          </mesh>
+          <mesh position={[0, 0.23, -0.08]} rotation={[0.12, 0, 0]}>
+            <coneGeometry args={[0.03, 0.13, 8]} />
+            <meshStandardMaterial color={style.trim} metalness={0.62} roughness={0.34} />
           </mesh>
         </group>
       )}
       {style.icon === "core" && (
-        <mesh position={[0, 0.08, 0.16]}>
-          <icosahedronGeometry args={[0.06, 0]} />
-          <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.24} />
-        </mesh>
+        <group>
+          <mesh position={[0, 0.08, 0.16]}>
+            <icosahedronGeometry args={[0.06, 0]} />
+            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.26} roughness={0.24} metalness={0.46} />
+          </mesh>
+          <mesh position={[0, 0.28, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.13, 0.008, 10, 42]} />
+            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.18} roughness={0.22} metalness={0.38} />
+          </mesh>
+          <mesh position={[0, 0.165, -0.1]}>
+            <boxGeometry args={[0.13, 0.07, 0.06]} />
+            <meshStandardMaterial color={style.trim} metalness={0.58} roughness={0.35} />
+          </mesh>
+        </group>
       )}
       {style.icon === "cross" && (
-        <group position={[0, 0.08, 0.16]}>
-          <mesh>
-            <boxGeometry args={[0.03, 0.11, 0.03]} />
-            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.22} />
+        <group>
+          <mesh position={[0, 0.15, -0.105]}>
+            <boxGeometry args={[0.145, 0.18, 0.08]} />
+            <meshStandardMaterial color={style.trim} roughness={0.35} metalness={0.52} />
           </mesh>
-          <mesh>
-            <boxGeometry args={[0.11, 0.03, 0.03]} />
-            <meshStandardMaterial color={style.accent} transparent opacity={0.95} />
+          <group position={[0, 0.09, 0.17]}>
+            <mesh>
+              <boxGeometry args={[0.035, 0.12, 0.035]} />
+              <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.2} roughness={0.28} metalness={0.48} />
+            </mesh>
+            <mesh>
+              <boxGeometry args={[0.12, 0.035, 0.035]} />
+              <meshStandardMaterial color={style.accent} transparent opacity={0.95} roughness={0.28} metalness={0.44} />
+            </mesh>
+          </group>
+          <mesh position={[0, 0.31, 0]} rotation={[Math.PI / 2, 0, 0]}>
+            <torusGeometry args={[0.1, 0.008, 8, 30]} />
+            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.16} />
           </mesh>
         </group>
       )}
 
       <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-        <ringGeometry args={[0.16, 0.28, 32]} />
+        <ringGeometry args={[0.17, 0.29, 32]} />
         <meshBasicMaterial ref={spawnGlowMatRef} color={style.accent} transparent opacity={0} />
       </mesh>
 
