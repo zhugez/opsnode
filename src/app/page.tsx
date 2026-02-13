@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, Line } from "@react-three/drei";
-import { Group } from "three";
+import { Group, MeshBasicMaterial, MeshStandardMaterial } from "three";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -43,6 +43,7 @@ type BotConfig = {
   archetype: BotArchetype;
   tier: BotTier;
   avatar: string;
+  deskSlot?: number;
 };
 
 type ConfigVersion = {
@@ -130,6 +131,7 @@ const defaults: BotConfig[] = [
     archetype: "analyst",
     tier: "III",
     avatar: ARCHETYPES.analyst.avatar,
+    deskSlot: 0,
   },
   {
     id: "zhu-ops",
@@ -148,6 +150,7 @@ const defaults: BotConfig[] = [
     archetype: "sentinel",
     tier: "II",
     avatar: ARCHETYPES.sentinel.avatar,
+    deskSlot: 1,
   },
 ];
 
@@ -202,6 +205,38 @@ const ARCHETYPE_RENDER: Record<
   medic: { color: "#10b981", accent: "#6ee7b7", icon: "cross" },
 };
 
+const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string }> = {
+  idle: { color: "#94a3b8", accent: "#cbd5e1" },
+  running: { color: "#22c55e", accent: "#86efac" },
+  paused: { color: "#f59e0b", accent: "#fcd34d" },
+};
+
+const DESK_SLOT_COUNT = 12;
+
+function firstFreeDeskSlot(existing: BotConfig[]) {
+  const used = new Set(existing.map((b) => b.deskSlot).filter((slot): slot is number => Number.isInteger(slot)));
+  for (let i = 0; i < DESK_SLOT_COUNT; i += 1) {
+    if (!used.has(i)) return i;
+  }
+  return existing.length % DESK_SLOT_COUNT;
+}
+
+function assignDeskSlots(list: BotConfig[]) {
+  const used = new Set<number>();
+  return list.map((bot, i) => {
+    const raw = bot.deskSlot;
+    const valid = Number.isInteger(raw) && (raw as number) >= 0 && (raw as number) < DESK_SLOT_COUNT && !used.has(raw as number);
+    const deskSlot = valid ? (raw as number) : (() => {
+      for (let slot = 0; slot < DESK_SLOT_COUNT; slot += 1) {
+        if (!used.has(slot)) return slot;
+      }
+      return i % DESK_SLOT_COUNT;
+    })();
+    used.add(deskSlot);
+    return { ...bot, deskSlot };
+  });
+}
+
 function unitSlotPosition(i: number): Vec3 {
   const row = Math.floor(i / 4);
   const col = i % 4;
@@ -252,6 +287,26 @@ function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }
         <meshStandardMaterial color="#2b3c57" roughness={0.34} metalness={0.48} />
       </mesh>
 
+      {Array.from({ length: DESK_SLOT_COUNT }).map((_, i) => {
+        const [x, y, z] = unitSlotPosition(i);
+        return (
+          <group key={`desk-slot-${i}`} position={[x, y - 0.05, z]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[0.18, 0.22, 28]} />
+              <meshBasicMaterial color="#38bdf8" transparent opacity={0.24} />
+            </mesh>
+            <mesh position={[0, -0.01, 0]}>
+              <cylinderGeometry args={[0.16, 0.16, 0.02, 20]} />
+              <meshStandardMaterial color="#233348" roughness={0.75} metalness={0.2} />
+            </mesh>
+            <mesh position={[0, 0.075, -0.14]}>
+              <boxGeometry args={[0.12, 0.05, 0.02]} />
+              <meshStandardMaterial color="#334155" emissive="#164e63" emissiveIntensity={0.3} />
+            </mesh>
+          </group>
+        );
+      })}
+
       {[-0.95, -0.32, 0.32, 0.95].map((x, i) => (
         <group key={i} position={[x, 0.38, -0.74]}>
           <mesh>
@@ -299,6 +354,7 @@ function UnitActor({
   grouped,
   onSelect,
   seed,
+  shouldSpawn,
 }: {
   bot: BotConfig;
   home: Vec3;
@@ -307,10 +363,21 @@ function UnitActor({
   grouped: boolean;
   onSelect: (id: string, additive: boolean) => void;
   seed: number;
+  shouldSpawn: boolean;
 }) {
   const ref = useRef<Group>(null);
+  const bodyMatRef = useRef<MeshStandardMaterial>(null);
+  const headMatRef = useRef<MeshStandardMaterial>(null);
+  const iconMatRef = useRef<MeshStandardMaterial>(null);
+  const spawnGlowMatRef = useRef<MeshBasicMaterial>(null);
   const [hovered, setHovered] = useState(false);
+  const spawnProgressRef = useRef(shouldSpawn ? 0 : 1);
   const style = ARCHETYPE_RENDER[bot.archetype];
+  const statusStyle = STATUS_STYLE[bot.status];
+
+  useEffect(() => {
+    if (shouldSpawn) spawnProgressRef.current = 0;
+  }, [shouldSpawn]);
 
   useFrame((state, delta) => {
     const group = ref.current;
@@ -330,10 +397,34 @@ function UnitActor({
     const baseYaw = grouped ? Math.atan2(-target[0], -target[2] + 0.2) : Math.sin(t * 0.3 + seed) * 0.1;
     group.rotation.y += (baseYaw - group.rotation.y) * lerp;
 
-    const targetScale = (selected ? 1.16 : 1) * (hovered ? 1.05 : 1) * pulse;
+    const nextSpawn = Math.min(1, spawnProgressRef.current + delta / 0.72);
+    spawnProgressRef.current = nextSpawn;
+    const spawnEase = 1 - Math.pow(1 - nextSpawn, 3);
+    const spawnOvershoot = shouldSpawn ? Math.sin(Math.min(1, nextSpawn) * Math.PI) * 0.08 : 0;
+
+    const targetScale = (selected ? 1.16 : 1) * (hovered ? 1.05 : 1) * pulse * (0.55 + spawnEase * 0.45 + spawnOvershoot);
     group.scale.x += (targetScale - group.scale.x) * lerp;
     group.scale.y += (targetScale - group.scale.y) * lerp;
     group.scale.z += (targetScale - group.scale.z) * lerp;
+
+    const visibleOpacity = Math.min(1, Math.max(0.06, spawnEase));
+    const glowIntensity = (1 - spawnEase) * 0.9;
+
+    if (bodyMatRef.current) {
+      bodyMatRef.current.opacity = visibleOpacity;
+      bodyMatRef.current.emissiveIntensity = (selected ? 0.34 : 0.12) + glowIntensity * 0.45;
+    }
+    if (headMatRef.current) {
+      headMatRef.current.opacity = visibleOpacity;
+      headMatRef.current.emissiveIntensity = 0.42 + glowIntensity * 0.3;
+    }
+    if (iconMatRef.current) {
+      iconMatRef.current.opacity = visibleOpacity;
+      iconMatRef.current.emissiveIntensity = 0.26 + glowIntensity * 0.25;
+    }
+    if (spawnGlowMatRef.current) {
+      spawnGlowMatRef.current.opacity = glowIntensity;
+    }
   });
 
   const onPointerDown = (e: ThreeEvent<PointerEvent>) => {
@@ -362,50 +453,94 @@ function UnitActor({
         {bot.archetype === "sniper" && <coneGeometry args={[0.16, 0.33, 14]} />}
         {bot.archetype === "analyst" && <octahedronGeometry args={[0.19, 0]} />}
         {bot.archetype === "medic" && <capsuleGeometry args={[0.1, 0.18, 6, 12]} />}
-        <meshStandardMaterial color={style.color} emissive={style.color} emissiveIntensity={selected ? 0.34 : 0.12} roughness={0.42} metalness={0.2} />
+        <meshStandardMaterial
+          ref={bodyMatRef}
+          transparent
+          color={style.color}
+          emissive={style.color}
+          emissiveIntensity={selected ? 0.34 : 0.12}
+          roughness={0.42}
+          metalness={0.2}
+        />
       </mesh>
 
       <mesh position={[0, 0.28, 0]}>
         <sphereGeometry args={[0.055, 12, 12]} />
-        <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.42} />
+        <meshStandardMaterial ref={headMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.42} />
       </mesh>
 
       {style.icon === "shield" && (
         <mesh position={[0, 0.08, 0.16]}>
           <cylinderGeometry args={[0.07, 0.045, 0.04, 6]} />
-          <meshStandardMaterial color={style.accent} roughness={0.3} metalness={0.45} />
+          <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} roughness={0.3} metalness={0.45} emissive={style.accent} emissiveIntensity={0.2} />
         </mesh>
       )}
       {style.icon === "reticle" && (
         <group position={[0, 0.08, 0.16]}>
           <mesh>
             <torusGeometry args={[0.07, 0.01, 8, 24]} />
-            <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.3} />
+            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.3} />
           </mesh>
           <mesh rotation={[0, 0, Math.PI / 2]}>
             <boxGeometry args={[0.12, 0.006, 0.006]} />
-            <meshStandardMaterial color={style.accent} />
+            <meshStandardMaterial color={style.accent} transparent opacity={0.95} />
           </mesh>
         </group>
       )}
       {style.icon === "core" && (
         <mesh position={[0, 0.08, 0.16]}>
           <icosahedronGeometry args={[0.06, 0]} />
-          <meshStandardMaterial color={style.accent} emissive={style.accent} emissiveIntensity={0.24} />
+          <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.24} />
         </mesh>
       )}
       {style.icon === "cross" && (
         <group position={[0, 0.08, 0.16]}>
           <mesh>
             <boxGeometry args={[0.03, 0.11, 0.03]} />
-            <meshStandardMaterial color={style.accent} />
+            <meshStandardMaterial ref={iconMatRef} transparent color={style.accent} emissive={style.accent} emissiveIntensity={0.22} />
           </mesh>
           <mesh>
             <boxGeometry args={[0.11, 0.03, 0.03]} />
-            <meshStandardMaterial color={style.accent} />
+            <meshStandardMaterial color={style.accent} transparent opacity={0.95} />
           </mesh>
         </group>
       )}
+
+      <mesh position={[0, 0.08, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <ringGeometry args={[0.16, 0.28, 32]} />
+        <meshBasicMaterial ref={spawnGlowMatRef} color={style.accent} transparent opacity={0} />
+      </mesh>
+
+      <group position={[0, 0.5, 0]}>
+        <mesh>
+          <sphereGeometry args={[0.036, 10, 10]} />
+          <meshStandardMaterial color={statusStyle.color} emissive={statusStyle.color} emissiveIntensity={0.5} />
+        </mesh>
+        {bot.status === "running" && (
+          <mesh position={[0.08, 0, 0]} rotation={[0, 0, -Math.PI / 2]}>
+            <coneGeometry args={[0.024, 0.06, 3]} />
+            <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.25} />
+          </mesh>
+        )}
+        {bot.status === "paused" && (
+          <group position={[0.085, 0, 0]}>
+            <mesh position={[-0.012, 0, 0]}>
+              <boxGeometry args={[0.01, 0.05, 0.01]} />
+              <meshStandardMaterial color={statusStyle.accent} />
+            </mesh>
+            <mesh position={[0.012, 0, 0]}>
+              <boxGeometry args={[0.01, 0.05, 0.01]} />
+              <meshStandardMaterial color={statusStyle.accent} />
+            </mesh>
+          </group>
+        )}
+        {bot.status === "idle" && (
+          <mesh position={[0.085, 0, 0]}>
+            <torusGeometry args={[0.02, 0.006, 8, 20]} />
+            <meshStandardMaterial color={statusStyle.accent} emissive={statusStyle.accent} emissiveIntensity={0.2} />
+          </mesh>
+        )}
+      </group>
 
       {selected && (
         <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -0.001, 0]}>
@@ -422,14 +557,20 @@ function NodeCore({
   selectedBots,
   onUnitSelect,
   onClearSelection,
+  spawnedBotIds,
 }: {
   bots: BotConfig[];
   selectedBots: string[];
   onUnitSelect: (id: string, additive: boolean) => void;
   onClearSelection: () => void;
+  spawnedBotIds: string[];
 }) {
-  const squad = bots.slice(0, 12);
+  const squad = useMemo(
+    () => [...bots].sort((a, b) => (a.deskSlot ?? Number.MAX_SAFE_INTEGER) - (b.deskSlot ?? Number.MAX_SAFE_INTEGER)).slice(0, DESK_SLOT_COUNT),
+    [bots],
+  );
   const selectedSet = useMemo(() => new Set(selectedBots), [selectedBots]);
+  const spawnedSet = useMemo(() => new Set(spawnedBotIds), [spawnedBotIds]);
   const grouped = selectedBots.length > 1;
 
   const formationMap = useMemo(() => {
@@ -441,18 +582,23 @@ function NodeCore({
   return (
     <>
       <SceneEnvironment onClearSelection={onClearSelection} />
-      {squad.map((bot, i) => (
-        <UnitActor
-          key={bot.id}
-          bot={bot}
-          home={unitSlotPosition(i)}
-          formation={formationMap.get(bot.id) ?? unitSlotPosition(i)}
-          selected={selectedSet.has(bot.id)}
-          grouped={grouped && selectedSet.has(bot.id)}
-          onSelect={onUnitSelect}
-          seed={i + 1}
-        />
-      ))}
+      {squad.map((bot, i) => {
+        const slot = bot.deskSlot ?? i;
+        const home = unitSlotPosition(slot);
+        return (
+          <UnitActor
+            key={bot.id}
+            bot={bot}
+            home={home}
+            formation={formationMap.get(bot.id) ?? home}
+            selected={selectedSet.has(bot.id)}
+            grouped={grouped && selectedSet.has(bot.id)}
+            onSelect={onUnitSelect}
+            seed={slot + 1}
+            shouldSpawn={spawnedSet.has(bot.id)}
+          />
+        );
+      })}
       <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.16} maxPolarAngle={Math.PI / 2.05} minPolarAngle={Math.PI / 2.9} />
     </>
   );
@@ -468,7 +614,7 @@ function makeBotId(existing: BotConfig[]) {
 }
 
 function loadBots(): BotConfig[] {
-  if (typeof window === "undefined") return defaults;
+  if (typeof window === "undefined") return assignDeskSlots(defaults);
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<BotConfig>[]) : defaults;
@@ -506,12 +652,13 @@ function loadBots(): BotConfig[] {
         archetype,
         tier: (b.tier as BotTier) || fallback.tier || "I",
         avatar: resolveAvatar(b.avatar, archetype),
+        deskSlot: Number.isInteger(b.deskSlot) ? (b.deskSlot as number) : fallback.deskSlot,
       } as BotConfig);
     });
 
-    return hydrated;
+    return assignDeskSlots(hydrated);
   } catch {
-    return defaults;
+    return assignDeskSlots(defaults);
   }
 }
 
@@ -532,6 +679,7 @@ export default function Page() {
   const [selectedBots, setSelectedBots] = useState<string[]>([]);
   const [gatewayMsg, setGatewayMsg] = useState<string>("");
   const [recruitDraft, setRecruitDraft] = useState<RecruitDraft>(initialRecruitDraft);
+  const [spawnedBotIds, setSpawnedBotIds] = useState<string[]>([]);
 
   useEffect(() => {
     const loaded = loadBots();
@@ -566,11 +714,13 @@ export default function Page() {
 
   const persist = (next: BotConfig[]) => {
     const seen = new Set<string>();
-    const sanitized = next.filter((b) => {
-      if (seen.has(b.id)) return false;
-      seen.add(b.id);
-      return true;
-    });
+    const sanitized = assignDeskSlots(
+      next.filter((b) => {
+        if (seen.has(b.id)) return false;
+        seen.add(b.id);
+        return true;
+      }),
+    );
     setBots(sanitized);
     localStorage.setItem(STORAGE_KEY, JSON.stringify(sanitized));
   };
@@ -598,11 +748,16 @@ export default function Page() {
         archetype,
         tier: recruitDraft.tier,
         avatar: ARCHETYPES[archetype].avatar,
+        deskSlot: firstFreeDeskSlot(bots),
       },
     ];
 
     saveSnapshot(bots);
     persist(next);
+    setSpawnedBotIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    window.setTimeout(() => {
+      setSpawnedBotIds((prev) => prev.filter((x) => x !== id));
+    }, 1400);
     setSelectedId(id);
     setShowRecruitMenu(false);
     setRecruitDraft(initialRecruitDraft);
@@ -635,6 +790,7 @@ export default function Page() {
     saveSnapshot(old);
     persist(next);
     setSelectedBots((prev) => prev.filter((x) => x !== id));
+    setSpawnedBotIds((prev) => prev.filter((x) => x !== id));
     if (selectedId === id) setSelectedId(next[0].id);
   };
 
@@ -649,6 +805,7 @@ export default function Page() {
       setSelectedId(latest.bots[0].id);
     }
     setSelectedBots((prev) => prev.filter((id) => latest.bots.some((b) => b.id === id)));
+    setSpawnedBotIds((prev) => prev.filter((id) => latest.bots.some((b) => b.id === id)));
   };
 
   const toggleBotSelection = (id: string) => {
@@ -777,6 +934,7 @@ export default function Page() {
                 <NodeCore
                   bots={bots.filter((b) => b.enabled)}
                   selectedBots={selectedBots}
+                  spawnedBotIds={spawnedBotIds}
                   onUnitSelect={(id, additive) => {
                     setSelectedId(id);
                     setSelectedBots((prev) => {
