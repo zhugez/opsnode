@@ -18,11 +18,9 @@ import {
   Pause,
   Play,
   Power,
-  Sparkles,
   Radar,
   Swords,
   Shield,
-  MousePointer2,
   ZoomIn,
   ZoomOut,
 } from "lucide-react";
@@ -743,21 +741,6 @@ export default function Page() {
     return bots.filter((b) => b.enabled).slice(0, 4);
   }, [bots, selectedBotUnits]);
 
-  const tacticalCells = useMemo(() => {
-    return Array.from({ length: 12 }).map((_, i) => {
-      const row = Math.floor(i / 4);
-      const col = i % 4;
-      const linked = i < loadoutUnits.length ? loadoutUnits[i] : undefined;
-      return {
-        id: i,
-        row,
-        col,
-        focused: !!linked,
-        linked,
-      };
-    });
-  }, [loadoutUnits]);
-
   const persist = (next: BotConfig[]) => {
     const seen = new Set<string>();
     const sanitized = assignDeskSlots(
@@ -894,7 +877,7 @@ export default function Page() {
   };
 
   const panelShell =
-    "relative overflow-hidden rounded-[26px] border border-slate-200/10 bg-slate-900/45 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_28px_58px_-42px_rgba(59,130,246,0.45)]";
+    "relative overflow-hidden rounded-2xl border border-white/[0.07] bg-slate-900/50 backdrop-blur-2xl shadow-[0_1px_0_0_rgba(255,255,255,0.04)_inset,0_20px_40px_-28px_rgba(0,0,0,0.55)]";
   const modeButton =
     "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.16em] transition duration-200";
 
@@ -902,11 +885,9 @@ export default function Page() {
     <main className="relative min-h-screen overflow-hidden bg-[#0b1220] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
       <div className="pointer-events-none absolute inset-0">
         <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(30,41,59,0.96)_0%,rgba(15,23,42,0.94)_48%,rgba(7,12,24,0.98)_100%)]" />
-        <div className="absolute left-0 top-0 h-[46%] w-full bg-[radial-gradient(ellipse_at_top,rgba(148,163,184,0.18)_0%,rgba(148,163,184,0.04)_48%,transparent_78%)]" />
-        <div className="absolute -left-16 top-[4%] h-[320px] w-[320px] rounded-full bg-sky-300/10 blur-[120px]" />
-        <div className="absolute -right-10 top-[10%] h-[280px] w-[280px] rounded-full bg-indigo-300/10 blur-[120px]" />
-        <div className="absolute bottom-[-12%] left-[22%] h-[220px] w-[360px] rounded-[50%] bg-slate-300/8 blur-[120px]" />
-        <div className="absolute inset-0 opacity-20 [background-image:linear-gradient(to_right,rgba(148,163,184,0.07)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.05)_1px,transparent_1px)] [background-size:72px_72px]" />
+        <div className="absolute left-0 top-0 h-[46%] w-full bg-[radial-gradient(ellipse_at_top,rgba(148,163,184,0.10)_0%,rgba(148,163,184,0.02)_48%,transparent_78%)]" />
+        <div className="absolute -left-16 top-[4%] h-[320px] w-[320px] rounded-full bg-sky-300/[0.05] blur-[140px]" />
+        <div className="absolute -right-10 top-[10%] h-[280px] w-[280px] rounded-full bg-indigo-300/[0.05] blur-[140px]" />
       </div>
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
@@ -915,26 +896,26 @@ export default function Page() {
           animate={{ opacity: 1, y: 0 }}
           className={`${panelShell} lg:col-span-8 p-5 md:p-7`}
         >
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(125,211,252,0.08)_0%,transparent_42%,rgba(165,180,252,0.08)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(125,211,252,0.04)_0%,transparent_50%)]" />
           <div className="relative">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-100/60">OpsNode Corporate Command</p>
-                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Commander Bridge</h1>
-                <p className="mt-2 text-sm text-slate-300/85">Assemble your squad, tune loadouts, and manage operations from HQ</p>
+                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-100/40">OpsNode</p>
+                <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-white md:text-4xl">Commander Bridge</h1>
+                <p className="mt-1.5 text-sm text-slate-400">Manage your squad loadouts and operations</p>
               </div>
-              <span className="rounded-full border border-emerald-300/30 bg-emerald-400/8 px-3 py-1 text-[10px] font-medium uppercase tracking-[0.2em] text-emerald-200">
+              <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-2.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.18em] text-emerald-300/70">
                 Live
               </span>
             </div>
 
-            <div className="mb-4 inline-flex rounded-xl border border-white/10 bg-white/[0.03] p-1">
+            <div className="mb-4 inline-flex rounded-lg border border-white/[0.06] bg-white/[0.02] p-0.5">
               <button
                 onClick={() => setViewMode("commander")}
                 className={`${modeButton} ${
                   viewMode === "commander"
-                    ? "bg-cyan-300/90 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)]"
-                    : "text-slate-300 hover:bg-white/8 hover:text-white"
+                    ? "bg-white/10 text-white"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Commander
@@ -943,62 +924,48 @@ export default function Page() {
                 onClick={() => setViewMode("detail")}
                 className={`${modeButton} ${
                   viewMode === "detail"
-                    ? "bg-cyan-300/90 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)]"
-                    : "text-slate-300 hover:bg-white/8 hover:text-white"
+                    ? "bg-white/10 text-white"
+                    : "text-slate-400 hover:text-slate-200"
                 }`}
               >
                 Detail
               </button>
             </div>
 
-            <div className="relative h-[384px] overflow-hidden rounded-[24px] border border-white/15 bg-[linear-gradient(160deg,rgba(20,28,42,0.95)_0%,rgba(12,17,29,0.96)_48%,rgba(7,11,20,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.12),inset_0_0_0_1px_rgba(125,211,252,0.08),0_28px_70px_-45px_rgba(14,165,233,0.52)]">
-              <div className="pointer-events-none absolute inset-0 opacity-25 [background-image:linear-gradient(to_right,rgba(148,163,184,0.1)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.08)_1px,transparent_1px)] [background-size:52px_52px]" />
-              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_15%,rgba(125,211,252,0.14)_0%,transparent_48%),radial-gradient(circle_at_50%_100%,rgba(99,102,241,0.1)_0%,transparent_56%)]" />
+            <div className="relative h-[384px] overflow-hidden rounded-2xl border border-white/[0.08] bg-[#0c1018] shadow-[0_1px_0_0_rgba(255,255,255,0.05)_inset,0_20px_50px_-30px_rgba(0,0,0,0.6)]">
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_50%_20%,rgba(125,211,252,0.06)_0%,transparent_55%)]" />
 
-              <motion.div
-                className="pointer-events-none absolute inset-y-0 w-20 bg-gradient-to-r from-transparent via-slate-100/10 to-transparent"
-                initial={{ x: -130, opacity: 0 }}
-                animate={{ x: 840, opacity: [0, 0.28, 0] }}
-                transition={{ duration: 6.4, repeat: Infinity, ease: "linear" }}
-              />
-
-              <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
+              <div className="pointer-events-none absolute left-3 top-3 z-10">
                 <motion.span
                   key={selectedCount}
                   initial={{ scale: 0.9, opacity: 0.5 }}
                   animate={{ scale: 1, opacity: 1 }}
-                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/25 bg-slate-950/72 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100/90"
+                  className="inline-flex items-center gap-1.5 rounded-lg bg-black/50 px-2.5 py-1 text-[10px] uppercase tracking-[0.14em] text-slate-200 backdrop-blur-md"
                 >
-                  <Radar size={12} /> {selectedCount} selected
+                  <Radar size={11} className="text-cyan-300/80" /> {selectedCount} selected
                 </motion.span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-violet-300/25 bg-violet-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
-                  <Sparkles size={11} /> {loadoutUnits.length} in loadout
-                </span>
               </div>
 
-              <div className="absolute right-4 top-4 z-10 flex gap-1.5 rounded-full border border-white/15 bg-slate-950/72 p-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-200 shadow-[0_8px_24px_-16px_rgba(2,6,23,0.8)]">
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><Activity size={11} /> Orbit</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><ZoomIn size={11} /> Zoom</span>
-                <span className="inline-flex items-center gap-1 rounded-full border border-white/10 bg-white/5 px-2 py-1"><MousePointer2 size={11} /> Select</span>
+              <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg bg-black/40 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-400 backdrop-blur-md">
+                Orbit · Zoom · Click to select
               </div>
 
-              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-xl border border-white/12 bg-slate-950/62 px-3 py-2 text-[10px] uppercase tracking-[0.14em] text-slate-100/80">
-                <span>HQ Environment Preview</span>
-                <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to fill roster"}</span>
+              <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/40 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.12em] text-slate-400 backdrop-blur-md">
+                {loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to begin"}
               </div>
 
-              <div className="absolute bottom-14 right-4 z-20 w-[220px] rounded-2xl border border-white/12 bg-slate-950/72 p-3 shadow-[0_16px_38px_-24px_rgba(14,165,233,0.5)] backdrop-blur-xl">
-                <div className="mb-2 flex items-center justify-between text-[10px] uppercase tracking-[0.16em] text-slate-300">
-                  <span>Camera Zoom</span>
-                  <span className="text-cyan-100">{zoomPercent}%</span>
+              <div className="absolute bottom-12 right-3 z-20 w-[180px] rounded-xl bg-black/50 p-2.5 backdrop-blur-xl">
+                <div className="mb-1.5 flex items-center justify-between text-[9px] uppercase tracking-[0.14em] text-slate-400">
+                  <span>Zoom</span>
+                  <span className="text-slate-300">{zoomPercent}%</span>
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-1.5">
                   <button
                     onClick={() => setDistanceTarget(cameraDistanceTarget + 0.4)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-slate-300 transition hover:bg-white/10"
                     aria-label="Zoom out"
                   >
-                    <ZoomOut size={13} />
+                    <ZoomOut size={12} />
                   </button>
                   <input
                     type="range"
@@ -1007,22 +974,22 @@ export default function Page() {
                     step={0.05}
                     value={cameraDistanceTarget}
                     onChange={(e) => setDistanceTarget(Number(e.target.value))}
-                    className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-300"
+                    className="h-1 w-full cursor-pointer appearance-none rounded-full bg-slate-700 accent-cyan-300"
                     aria-label="Camera zoom"
                   />
                   <button
                     onClick={() => setDistanceTarget(cameraDistanceTarget - 0.4)}
-                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-white/15 bg-white/5 text-slate-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                    className="inline-flex h-6 w-6 items-center justify-center rounded-md bg-white/[0.06] text-slate-300 transition hover:bg-white/10"
                     aria-label="Zoom in"
                   >
-                    <ZoomIn size={13} />
+                    <ZoomIn size={12} />
                   </button>
                 </div>
                 <button
                   onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
-                  className="mt-2 w-full rounded-lg border border-white/12 bg-white/[0.03] px-2 py-1.5 text-[10px] uppercase tracking-[0.14em] text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/12"
+                  className="mt-1.5 w-full rounded-md bg-white/[0.04] px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-400 transition hover:bg-white/[0.08] hover:text-slate-200"
                 >
-                  Reset View · {cameraDistance.toFixed(2)}m
+                  Reset · {cameraDistance.toFixed(1)}m
                 </button>
               </div>
 
@@ -1051,13 +1018,10 @@ export default function Page() {
             </div>
 
             {viewMode === "commander" ? (
-              <div className="mt-4 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl">
-                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
-                  <div>
-                    <p className="text-[10px] uppercase tracking-[0.26em] text-cyan-200/65">Squad Loadout</p>
-                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Alpha · Bravo · Charlie · Delta</p>
-                  </div>
-                  <div className="text-[10px] uppercase tracking-[0.16em] text-slate-300">{selectedCount ? "Manual selection" : "Auto from enabled units"}</div>
+              <div className="mt-4 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Squad Loadout</p>
+                  <p className="text-[10px] uppercase tracking-[0.14em] text-slate-500">{selectedCount ? "Manual selection" : "Auto"}</p>
                 </div>
 
                 <div className="grid gap-2 sm:grid-cols-2">
@@ -1070,78 +1034,52 @@ export default function Page() {
                         key={slotLabel}
                         className={`relative overflow-hidden rounded-xl border p-3 ${
                           bot
-                            ? "border-cyan-100/20 bg-slate-900/70"
-                            : "border-white/10 bg-slate-950/45"
+                            ? "border-white/[0.08] bg-slate-900/60"
+                            : "border-white/[0.05] bg-slate-950/30"
                         }`}
                       >
                         {bot && <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a?.aura}`} />}
                         <div className="relative flex items-center gap-3">
-                          <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/80">
-                            {bot ? <UnitPortrait src={ARCHETYPES[bot.archetype].avatar} alt={bot.name} /> : <span className="text-cyan-100/60">◌</span>}
+                          <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
+                            {bot ? <UnitPortrait src={ARCHETYPES[bot.archetype].avatar} alt={bot.name} /> : <span className="text-slate-500 text-xs">—</span>}
                           </div>
                           <div>
-                            <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Slot {slotLabel}</p>
-                            <p className="text-sm font-semibold text-white">{bot ? `[${bot.callsign}]` : "Unassigned"}</p>
-                            <p className="text-[11px] text-slate-300">
-                              {bot ? `${bot.name} · ${a?.label} · Tier ${bot.tier}` : "Recruit or select a unit"}
-                            </p>
+                            <p className="text-[9px] uppercase tracking-[0.14em] text-slate-500">{slotLabel}</p>
+                            <p className="text-sm font-medium text-white">{bot ? `[${bot.callsign}]` : "Empty"}</p>
+                            {bot && (
+                              <p className="text-[11px] text-slate-400">
+                                {bot.name} · {a?.label} {bot.tier}
+                              </p>
+                            )}
                           </div>
                         </div>
                       </div>
                     );
                   })}
                 </div>
-
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {tacticalCells.map((cell) => (
-                    <motion.div
-                      key={cell.id}
-                      animate={
-                        cell.focused
-                          ? { boxShadow: ["0 0 0 rgba(34,211,238,0)", "0 0 14px rgba(34,211,238,0.28)", "0 0 0 rgba(34,211,238,0)"] }
-                          : undefined
-                      }
-                      transition={{ duration: 2.4, repeat: Infinity }}
-                      className={`relative h-10 overflow-hidden rounded-md border ${
-                        cell.focused
-                          ? "border-cyan-300/35 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-indigo-500/10"
-                          : "border-cyan-100/10 bg-gradient-to-br from-cyan-400/8 via-slate-950/65 to-blue-500/8"
-                      }`}
-                    >
-                      <p className="absolute right-1.5 top-1 text-[9px] font-medium tracking-[0.14em] text-cyan-100/75">
-                        {String.fromCharCode(65 + cell.row)}{cell.col + 1}
-                      </p>
-                      {cell.linked && (
-                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-cyan-50">
-                          [{cell.linked.callsign}]
-                        </p>
-                      )}
-                    </motion.div>
-                  ))}
-                </div>
               </div>
             ) : (
-              <div className="mt-4 grid gap-3 rounded-2xl border border-white/10 bg-white/[0.02] p-4 backdrop-blur-xl sm:grid-cols-2">
-                <div className="rounded-xl border border-cyan-100/10 bg-slate-950/55 p-4">
-                  <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/65">Selected Unit</p>
+              <div className="mt-4 grid gap-3 rounded-xl border border-white/[0.06] bg-white/[0.02] p-4 sm:grid-cols-2">
+                <div className="rounded-xl border border-white/[0.06] bg-slate-950/50 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Selected Unit</p>
                   {selected && (
-                    <div className="mt-2 h-20 w-full overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
+                    <div className="mt-2 h-20 w-full overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
                       <UnitPortrait src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full object-cover" />
                     </div>
                   )}
                   <p className="mt-2 text-xl font-semibold text-white">{selected ? `[${selected.callsign}]` : "-"}</p>
-                  <p className="mt-1 text-xs text-slate-300">{selected ? `${selected.name} · ${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}</p>
-                  <p className="mt-1 text-xs text-slate-400">
+                  <p className="mt-1 text-xs text-slate-400">{selected ? `${selected.name} · ${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}</p>
+                  <p className="mt-0.5 text-[11px] text-slate-500">
                     {selected?.provider} · {selected?.model}
                   </p>
                 </div>
-                <div className="grid gap-3">
-                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
-                    <CheckCircle2 size={14} className="text-emerald-300" />
+                <div className="grid gap-2">
+                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-slate-950/50 px-3 py-2.5 text-xs text-slate-300">
+                    <CheckCircle2 size={14} className="text-emerald-400/70" />
                     Command integrity: {health}%
                   </div>
-                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/55 px-3 py-2.5 text-xs text-slate-200">
-                    <Clock3 size={14} className="text-cyan-200" />
+                  <div className="flex items-center gap-2 rounded-xl border border-white/[0.06] bg-slate-950/50 px-3 py-2.5 text-xs text-slate-300">
+                    <Clock3 size={14} className="text-slate-400" />
                     Last event: {selected?.lastRun || "-"}
                   </div>
                 </div>
@@ -1158,10 +1096,10 @@ export default function Page() {
         </section>
 
         <section className={`${panelShell} lg:col-span-8 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(56,189,248,0.06)_0%,transparent_45%,rgba(99,102,241,0.05)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
           <div className="relative">
             <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
-              <h2 className="text-2xl font-semibold tracking-tight text-white">Roster Bay</h2>
+              <h2 className="text-xl font-semibold tracking-tight text-white">Roster</h2>
               <div className="flex flex-wrap gap-2">
                 <button
                   onClick={() => {
@@ -1171,27 +1109,27 @@ export default function Page() {
                     }));
                     setShowRecruitMenu(true);
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-cyan-300/25 bg-cyan-300 px-3 py-1.5 text-xs font-semibold text-slate-950 transition hover:brightness-110"
                 >
                   <Swords size={14} /> Recruit Menu
                 </button>
                 <button
                   onClick={rollback}
-                  className="inline-flex items-center gap-2 rounded-xl border border-white/15 bg-slate-900/50 px-3.5 py-2 text-sm text-slate-200 transition hover:border-cyan-200/30 hover:bg-cyan-300/8"
+                  className="inline-flex items-center gap-1.5 rounded-lg border border-white/10 bg-slate-800/60 px-3 py-1.5 text-xs text-slate-300 transition hover:border-white/20 hover:bg-slate-700/50"
                 >
                   <RotateCcw size={14} /> Rollback
                 </button>
               </div>
             </div>
 
-            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-white/10 bg-slate-900/38 p-2 text-xs">
+            <div className="mb-3 flex flex-wrap items-center gap-2 rounded-lg border border-white/[0.06] bg-slate-900/30 p-2 text-xs">
               <motion.span
                 key={selectedCount}
                 initial={{ scale: 0.9, opacity: 0.6 }}
                 animate={{ scale: 1, opacity: 1 }}
-                className="rounded-lg border border-cyan-200/20 bg-cyan-400/8 px-2 py-1 text-cyan-100"
+                className="rounded-md bg-white/[0.05] px-2 py-1 text-slate-300"
               >
-                Selected: {selectedCount}
+                {selectedCount} selected
               </motion.span>
               <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("enable")} tone="emerald">
                 Enable
@@ -1208,13 +1146,10 @@ export default function Page() {
               <button
                 onClick={() => setSelectedBots([])}
                 disabled={!selectedCount}
-                className="rounded-lg border border-white/18 px-2 py-1 text-slate-300 transition hover:bg-white/8 disabled:cursor-not-allowed disabled:opacity-45"
+                className="rounded-lg border border-white/10 px-2 py-1 text-slate-400 transition hover:bg-white/[0.06] disabled:cursor-not-allowed disabled:opacity-40"
               >
                 Clear
               </button>
-              <p className="ml-auto pr-1 text-[10px] uppercase tracking-[0.14em] text-slate-400">
-                {selectedCount > 0 ? "Formation override armed" : "Select units to unlock formation actions"}
-              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
@@ -1227,45 +1162,40 @@ export default function Page() {
                     whileHover={{ y: -2 }}
                     transition={{ duration: 0.18 }}
                     key={b.id}
-                    className={`relative overflow-hidden rounded-2xl border p-4 backdrop-blur-xl transition ${
+                    className={`relative overflow-hidden rounded-xl border p-3.5 transition ${
                       selectedId === b.id
-                        ? "border-cyan-200/35 bg-gradient-to-br from-cyan-400/10 via-slate-900/72 to-indigo-500/10 shadow-[0_0_26px_-16px_rgba(34,211,238,0.7)]"
-                        : "border-white/10 bg-slate-950/50 hover:border-cyan-100/25 hover:bg-slate-900/70"
-                    } ${batchSelected ? "ring-1 ring-violet-300/35" : ""}`}
+                        ? "border-white/[0.12] bg-slate-900/70 shadow-[0_0_16px_-10px_rgba(34,211,238,0.4)]"
+                        : "border-white/[0.06] bg-slate-950/40 hover:border-white/[0.1] hover:bg-slate-900/50"
+                    } ${batchSelected ? "ring-1 ring-violet-300/25" : ""}`}
                   >
                     <div className={`pointer-events-none absolute inset-0 bg-gradient-to-r ${a.aura}`} />
-                    <div className="relative mb-3 flex items-start justify-between gap-2">
-                      <div className="flex items-center gap-3">
+                    <div className="relative mb-2 flex items-start justify-between gap-2">
+                      <div className="flex items-center gap-2.5">
                         <input
                           type="checkbox"
                           checked={batchSelected}
                           onChange={() => toggleBotSelection(b.id)}
-                          className="mt-1 h-4 w-4 rounded border-cyan-200/35 bg-slate-900 text-cyan-300"
+                          className="mt-0.5 h-3.5 w-3.5 rounded border-slate-500 bg-slate-900 text-cyan-300"
                         />
-                        <div className="flex h-11 w-11 items-center justify-center overflow-hidden rounded-xl border border-white/15 bg-slate-950/75">
+                        <div className="flex h-9 w-9 items-center justify-center overflow-hidden rounded-lg border border-white/10 bg-slate-950/70">
                           <UnitPortrait src={ARCHETYPES[b.archetype].avatar} alt={b.name} />
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                          <p className="text-base font-semibold text-white">[{b.callsign}]</p>
-                          <p className="mt-0.5 text-xs text-slate-300">{b.name} · {a.label}</p>
+                          <p className="text-sm font-semibold text-white">[{b.callsign}]</p>
+                          <p className="text-[11px] text-slate-400">{b.name} · {a.label}</p>
                         </button>
                       </div>
-                      <div className="flex items-center gap-2">
-                        {batchSelected && (
-                          <span className="rounded-full border border-violet-300/30 bg-violet-500/10 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-violet-100">
-                            grouped
-                          </span>
-                        )}
-                        <span className={`rounded-full border px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${a.chip}`}>
-                          Tier {b.tier}
+                      <div className="flex items-center gap-1.5">
+                        <span className={`rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] ${a.chip}`}>
+                          {b.tier}
                         </span>
                         <span
-                          className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                          className={`rounded-md px-1.5 py-0.5 text-[9px] uppercase tracking-[0.12em] ${
                             b.status === "running"
-                              ? "border border-emerald-300/20 bg-emerald-500/16 text-emerald-200"
+                              ? "bg-emerald-500/12 text-emerald-300"
                               : b.status === "paused"
-                                ? "border border-amber-300/20 bg-amber-500/16 text-amber-200"
-                                : "border border-slate-300/20 bg-slate-500/25 text-slate-200"
+                                ? "bg-amber-500/12 text-amber-300"
+                                : "bg-slate-500/15 text-slate-400"
                           }`}
                         >
                           {b.status}
@@ -1273,23 +1203,19 @@ export default function Page() {
                       </div>
                     </div>
 
-                    <div className="relative mb-4 flex flex-wrap items-center gap-2 text-[11px] text-slate-300">
-                      <span className={`rounded-md border px-2 py-0.5 ${a.chip}`}>{a.role}</span>
-                      <span>·</span>
-                      <span>
-                        {b.provider} · {b.model}
-                      </span>
+                    <div className="relative mb-2.5 text-[10px] text-slate-500">
+                      {a.role} · {b.provider} · {b.model}
                     </div>
 
-                    <div className="relative flex flex-wrap gap-2">
+                    <div className="relative flex flex-wrap gap-1.5">
                       <button
                         onClick={() => {
                           setSelectedId(b.id);
                           setShowConfig(true);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
+                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
                       >
-                        <Settings size={13} /> Loadout
+                        <Settings size={12} /> Loadout
                       </button>
                       <button
                         onClick={() => {
@@ -1300,9 +1226,9 @@ export default function Page() {
                           );
                           persist(next);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
+                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
                       >
-                        {b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}
+                        {b.status === "paused" ? <Play size={12} /> : <Pause size={12} />}
                         {b.status === "paused" ? "Resume" : "Pause"}
                       </button>
                       <button
@@ -1310,15 +1236,15 @@ export default function Page() {
                           const next = bots.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x));
                           persist(next);
                         }}
-                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/18 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/8"
+                        className="inline-flex items-center gap-1 rounded-md border border-white/[0.07] bg-white/[0.03] px-2 py-1 text-[11px] text-slate-300 transition hover:bg-white/[0.07]"
                       >
-                        <Power size={13} /> {b.enabled ? "Disable" : "Enable"}
+                        <Power size={12} /> {b.enabled ? "Disable" : "Enable"}
                       </button>
                       <button
                         onClick={() => deleteBot(b.id)}
-                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300/20 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/12"
+                        className="inline-flex items-center gap-1 rounded-md border border-rose-400/10 bg-rose-500/[0.04] px-2 py-1 text-[11px] text-rose-300/70 transition hover:bg-rose-500/10"
                       >
-                        <Trash2 size={13} /> Delete
+                        <Trash2 size={12} /> Delete
                       </button>
                     </div>
                   </motion.div>
@@ -1329,31 +1255,31 @@ export default function Page() {
         </section>
 
         <section className={`${panelShell} lg:col-span-4 p-5 md:p-6`}>
-          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(56,189,248,0.07)_0%,transparent_36%,rgba(99,102,241,0.08)_100%)]" />
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
           <div className="relative">
-            <h2 className="text-2xl font-semibold tracking-tight text-white">Quick Actions</h2>
-            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Gateway Dispatch</p>
-            <div className="mt-5 space-y-3">
+            <h2 className="text-xl font-semibold tracking-tight text-white">Quick Actions</h2>
+            <p className="mt-1 text-[10px] uppercase tracking-[0.18em] text-slate-500">Gateway Dispatch</p>
+            <div className="mt-4 space-y-2">
               <button
                 onClick={() => sendGatewayAction("summon")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2.5 font-medium text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 text-sm font-medium text-slate-950 transition hover:brightness-110"
               >
-                <Activity size={16} /> Summon All
+                <Activity size={15} /> Summon All
               </button>
               <button
                 onClick={() => sendGatewayAction("reset")}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-100/20 bg-slate-900/58 px-4 py-2.5 text-cyan-100 transition hover:border-cyan-200/32 hover:bg-cyan-300/8"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
               >
-                <Brain size={16} /> Reset Context
+                <Brain size={15} /> Reset Context
               </button>
               <button
                 onClick={() => setShowConfig(true)}
-                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-slate-900/55 px-4 py-2.5 text-slate-100 transition hover:border-white/30 hover:bg-white/8"
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-white/[0.07] bg-white/[0.03] px-4 py-2 text-sm text-slate-300 transition hover:bg-white/[0.07]"
               >
-                <Shield size={16} /> Open Loadout Panel
+                <Shield size={15} /> Open Loadout
               </button>
             </div>
-            <p className="mt-4 rounded-lg border border-cyan-100/10 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">
+            <p className="mt-3 rounded-md bg-white/[0.03] px-3 py-2 text-[11px] text-slate-500">
               {gatewayMsg || "Gateway ready"}
             </p>
           </div>
@@ -1362,8 +1288,8 @@ export default function Page() {
 
       {showRecruitMenu && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
-          <div className="relative w-full max-w-4xl overflow-hidden rounded-3xl border border-white/12 bg-slate-950/92 p-5 shadow-[0_24px_80px_-40px_rgba(34,211,238,0.68)] backdrop-blur-2xl md:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
+          <div className="relative w-full max-w-4xl overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-950/95 p-5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
             <div className="relative">
               <div className="mb-5 flex items-center justify-between">
                 <div>
@@ -1465,7 +1391,7 @@ export default function Page() {
               <div className="mt-5 flex justify-end gap-2">
                 <button
                   onClick={recruitBot}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:brightness-110"
                 >
                   <Swords size={14} /> Recruit Unit
                 </button>
@@ -1477,8 +1403,8 @@ export default function Page() {
 
       {showConfig && selected && (
         <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
-          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-white/12 bg-slate-950/90 p-5 shadow-[0_24px_80px_-40px_rgba(34,211,238,0.68)] backdrop-blur-2xl md:p-6">
-            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-2xl border border-white/[0.08] bg-slate-950/95 p-5 shadow-[0_24px_60px_-20px_rgba(0,0,0,0.7)] backdrop-blur-2xl md:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.03)_0%,transparent_50%)]" />
             <div className="relative">
               <div className="mb-5 flex items-center justify-between">
                 <h3 className="text-xl font-semibold tracking-tight text-white">Loadout · [{selected.callsign}]</h3>
@@ -1533,7 +1459,7 @@ export default function Page() {
                     persist(bots);
                     setShowConfig(false);
                   }}
-                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
+                  className="inline-flex items-center gap-2 rounded-lg border border-cyan-300/20 bg-cyan-300 px-4 py-2 font-semibold text-slate-950 transition hover:brightness-110"
                 >
                   <Save size={14} /> Save Loadout
                 </button>
@@ -1552,11 +1478,10 @@ function UnitPortrait({ src, alt, className = "h-full w-full object-cover" }: { 
 
 function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
   return (
-    <div className="relative overflow-hidden rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.06),0_16px_50px_-38px_rgba(34,211,238,0.65)]">
-      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/35 to-transparent" />
-      <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/70">{title}</p>
+    <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
+      <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">{title}</p>
       <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
-      <p className="mt-1 text-xs text-slate-300">{sub}</p>
+      <p className="mt-1 text-xs text-slate-400">{sub}</p>
     </div>
   );
 }
