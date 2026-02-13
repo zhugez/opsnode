@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
-import { Canvas, useFrame } from "@react-three/fiber";
-import { OrbitControls, Float, Line } from "@react-three/drei";
-import * as THREE from "three";
+import { useEffect, useMemo, useState } from "react";
+import { Canvas } from "@react-three/fiber";
+import { OrbitControls, Sphere, MeshDistortMaterial, Float, Line } from "@react-three/drei";
 import { motion } from "framer-motion";
 import {
   Activity,
@@ -18,6 +17,8 @@ import {
   Pause,
   Play,
   Power,
+  Sparkles,
+  Radar,
 } from "lucide-react";
 
 type BotConfig = {
@@ -74,171 +75,51 @@ const defaults: BotConfig[] = [
   },
 ];
 
-function SentinelCharacter() {
-  const rootRef = useRef<THREE.Group>(null!);
-  const headRef = useRef<THREE.Group>(null!);
-  const chestCoreRef = useRef<THREE.Mesh>(null!);
-
-  useFrame((state) => {
-    const t = state.clock.elapsedTime;
-
-    if (rootRef.current) {
-      rootRef.current.position.y = Math.sin(t * 1.2) * 0.04;
-      rootRef.current.rotation.y = Math.sin(t * 0.35) * 0.12;
-    }
-
-    if (headRef.current) {
-      headRef.current.rotation.y = Math.sin(t * 1.9) * 0.35;
-      headRef.current.rotation.x = Math.cos(t * 1.4) * 0.06;
-    }
-
-    if (chestCoreRef.current) {
-      const pulse = 1 + Math.sin(t * 2.5) * 0.08;
-      chestCoreRef.current.scale.set(pulse, pulse, pulse);
-    }
-  });
-
-  return (
-    <group ref={rootRef}>
-      <mesh position={[0, 0.05, 0]} castShadow>
-        <boxGeometry args={[1.05, 1.2, 0.62]} />
-        <meshStandardMaterial color="#4e6f90" roughness={0.35} metalness={0.85} />
-      </mesh>
-
-      <mesh position={[0, 0.12, 0.32]}>
-        <boxGeometry args={[0.7, 0.52, 0.08]} />
-        <meshStandardMaterial color="#5d89ad" emissive="#123044" emissiveIntensity={0.45} metalness={0.7} roughness={0.25} />
-      </mesh>
-
-      <mesh ref={chestCoreRef} position={[0, 0.1, 0.38]}>
-        <octahedronGeometry args={[0.12, 0]} />
-        <meshStandardMaterial color="#8fe8ff" emissive="#36ceff" emissiveIntensity={1.1} roughness={0.18} metalness={0.55} />
-      </mesh>
-
-      <group ref={headRef} position={[0, 0.98, 0]}>
-        <mesh castShadow>
-          <capsuleGeometry args={[0.24, 0.18, 4, 12]} />
-          <meshStandardMaterial color="#5f86a8" roughness={0.3} metalness={0.84} />
-        </mesh>
-        <mesh position={[0, -0.03, 0.2]}>
-          <boxGeometry args={[0.34, 0.12, 0.08]} />
-          <meshStandardMaterial color="#9defff" emissive="#48ddff" emissiveIntensity={0.95} metalness={0.42} roughness={0.15} />
-        </mesh>
-        <mesh position={[0, 0.26, 0]}>
-          <cylinderGeometry args={[0.022, 0.022, 0.16, 12]} />
-          <meshStandardMaterial color="#78cbff" emissive="#37acff" emissiveIntensity={0.8} />
-        </mesh>
-        <mesh position={[0, 0.36, 0]}>
-          <sphereGeometry args={[0.038, 12, 12]} />
-          <meshStandardMaterial color="#c8f6ff" emissive="#67e6ff" emissiveIntensity={1.2} />
-        </mesh>
-      </group>
-
-      <mesh position={[-0.68, 0.24, 0]} castShadow>
-        <capsuleGeometry args={[0.11, 0.58, 4, 10]} />
-        <meshStandardMaterial color="#4f6f8d" roughness={0.36} metalness={0.8} />
-      </mesh>
-      <mesh position={[0.68, 0.24, 0]} castShadow>
-        <capsuleGeometry args={[0.11, 0.58, 4, 10]} />
-        <meshStandardMaterial color="#4f6f8d" roughness={0.36} metalness={0.8} />
-      </mesh>
-
-      <mesh position={[0, -0.66, 0]}>
-        <boxGeometry args={[0.62, 0.26, 0.42]} />
-        <meshStandardMaterial color="#466480" roughness={0.4} metalness={0.78} />
-      </mesh>
-
-      <mesh position={[-0.2, -1.12, 0.02]} castShadow>
-        <capsuleGeometry args={[0.1, 0.64, 4, 10]} />
-        <meshStandardMaterial color="#4e6d89" roughness={0.34} metalness={0.82} />
-      </mesh>
-      <mesh position={[0.2, -1.12, 0.02]} castShadow>
-        <capsuleGeometry args={[0.1, 0.64, 4, 10]} />
-        <meshStandardMaterial color="#4e6d89" roughness={0.34} metalness={0.82} />
-      </mesh>
-
-      <mesh position={[0, -1.56, 0.15]}>
-        <boxGeometry args={[0.75, 0.12, 0.5]} />
-        <meshStandardMaterial color="#3f5c74" roughness={0.45} metalness={0.72} />
-      </mesh>
-
-      <mesh position={[0, 0.08, -0.38]}>
-        <cylinderGeometry args={[0.16, 0.22, 0.38, 16]} />
-        <meshStandardMaterial color="#3b5470" roughness={0.4} metalness={0.76} />
-      </mesh>
-      <mesh position={[0, 0.1, -0.52]}>
-        <sphereGeometry args={[0.09, 16, 16]} />
-        <meshStandardMaterial color="#91ecff" emissive="#2fd4ff" emissiveIntensity={0.9} roughness={0.2} metalness={0.6} />
-      </mesh>
-    </group>
-  );
-}
-
 function NodeCore() {
-  const relayLines: [number, number, number][][] = useMemo(
-    () => [
-      [
-        [-1.6, 1.2, -1.1],
-        [-0.6, 0.7, -0.4],
-        [0, 0.2, 0],
-        [0.9, 0.76, 0.32],
-        [1.65, 1.08, 0.9],
-      ],
-      [
-        [-1.5, -0.2, 1],
-        [-0.6, -0.55, 0.42],
-        [0, -0.9, 0.1],
-        [0.78, -0.42, -0.32],
-        [1.5, 0.1, -0.95],
-      ],
-      [
-        [-0.95, 1.5, 0.6],
-        [-0.35, 0.52, 0.22],
-        [0.26, 0.1, -0.1],
-        [0.95, 0.6, -0.7],
-      ],
-    ],
-    [],
-  );
+  const points: [number, number, number][] = [
+    [-2, 1.2, -1],
+    [-1, 0.3, 0.5],
+    [0, 0, 0],
+    [1, -0.3, -0.4],
+    [2, 0.9, 0.8],
+  ];
 
   return (
     <>
-      <ambientLight intensity={0.42} />
-      <directionalLight position={[3, 4, 2]} intensity={0.8} color="#9be9ff" />
-      <pointLight position={[2.4, 2.1, 2.6]} intensity={1.2} color="#69d8ff" />
-      <pointLight position={[-2.4, -1.1, 1.3]} intensity={0.65} color="#6076ff" />
-      <pointLight position={[0, 1.8, -2]} intensity={0.55} color="#5dd8ff" />
-
-      <Float speed={1} rotationIntensity={0.12} floatIntensity={0.45}>
-        <SentinelCharacter />
+      <ambientLight intensity={0.45} />
+      <pointLight position={[2.5, 2.2, 2.8]} intensity={1.3} color="#73e3ff" />
+      <pointLight position={[-2.2, -1.3, 1.1]} intensity={0.9} color="#6875ff" />
+      <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.9}>
+        <Sphere args={[1.1, 64, 64]}>
+          <MeshDistortMaterial
+            color="#62d8ff"
+            emissive="#1a6286"
+            emissiveIntensity={0.7}
+            roughness={0.08}
+            metalness={0.45}
+            distort={0.3}
+            speed={2}
+          />
+        </Sphere>
       </Float>
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.72, 0]}>
-        <ringGeometry args={[1.55, 1.9, 56]} />
-        <meshStandardMaterial color="#80deff" emissive="#2f8fb1" emissiveIntensity={0.55} metalness={0.7} roughness={0.22} side={THREE.DoubleSide} />
-      </mesh>
-
-      <mesh rotation={[-Math.PI / 2, 0, 0]} position={[0, -1.7, 0]}>
-        <ringGeometry args={[2.2, 2.34, 64]} />
-        <meshStandardMaterial color="#6ecbff" emissive="#275a82" emissiveIntensity={0.35} transparent opacity={0.65} side={THREE.DoubleSide} />
-      </mesh>
-
-      {relayLines.map((line, idx) => (
-        <Line key={idx} points={line} color={idx === 1 ? "#77b8ff" : "#a3e7ff"} lineWidth={1} transparent opacity={0.68} />
-      ))}
-
-      {relayLines.flat().map((p, i) => (
+      <Float speed={0.8} rotationIntensity={0.25} floatIntensity={0.45}>
+        <mesh rotation={[Math.PI / 2.2, 0, 0]}>
+          <torusGeometry args={[1.65, 0.017, 18, 140]} />
+          <meshStandardMaterial color="#76d6ff" emissive="#24496d" emissiveIntensity={0.7} />
+        </mesh>
+      </Float>
+      <Line points={points} color="#8fc7ff" lineWidth={1.2} transparent opacity={0.72} />
+      <Line points={[points[0], points[2], points[4]]} color="#bde8ff" lineWidth={0.9} transparent opacity={0.45} />
+      {points.map((p, i) => (
         <mesh key={i} position={p}>
-          <sphereGeometry args={[0.033, 10, 10]} />
-          <meshStandardMaterial color="#d9f8ff" emissive="#66d8ff" emissiveIntensity={0.9} />
+          <sphereGeometry args={[i === 2 ? 0.085 : 0.06, 18, 18]} />
+          <meshStandardMaterial color="#e5f8ff" emissive="#89e3ff" emissiveIntensity={0.9} />
         </mesh>
       ))}
-
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.5} maxPolarAngle={Math.PI * 0.62} minPolarAngle={Math.PI * 0.38} />
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.85} />
     </>
   );
 }
-
 
 function loadBots(): BotConfig[] {
   if (typeof window === "undefined") return defaults;
@@ -274,6 +155,31 @@ export default function Page() {
   useEffect(() => setBots(loadBots()), []);
 
   const selected = useMemo(() => bots.find((b) => b.id === selectedId) || bots[0], [bots, selectedId]);
+  const selectedCount = selectedBots.length;
+
+  const selectedBotUnits = useMemo(
+    () => bots.filter((b) => selectedBots.includes(b.id)),
+    [bots, selectedBots],
+  );
+
+  const tacticalCells = useMemo(() => {
+    return Array.from({ length: 24 }).map((_, i) => {
+      const row = Math.floor(i / 6);
+      const col = i % 6;
+      const active = i % 5 === 0 || i === 7 || i === 18;
+      const focused = selectedCount > 0 && i < selectedCount;
+      const linked = focused ? selectedBotUnits[i] : undefined;
+
+      return {
+        id: i,
+        row,
+        col,
+        active,
+        focused,
+        linked,
+      };
+    });
+  }, [selectedCount, selectedBotUnits]);
 
   const persist = (next: BotConfig[]) => {
     setBots(next);
@@ -316,6 +222,7 @@ export default function Page() {
     if (!next.length) return;
     saveSnapshot(old);
     persist(next);
+    setSelectedBots((prev) => prev.filter((x) => x !== id));
     if (selectedId === id) setSelectedId(next[0].id);
   };
 
@@ -326,6 +233,10 @@ export default function Page() {
     const [latest, ...rest] = versions;
     localStorage.setItem(VERSIONS_KEY, JSON.stringify(rest));
     persist(latest.bots);
+    if (!latest.bots.some((b) => b.id === selectedId) && latest.bots[0]) {
+      setSelectedId(latest.bots[0].id);
+    }
+    setSelectedBots((prev) => prev.filter((id) => latest.bots.some((b) => b.id === id)));
   };
 
   const toggleBotSelection = (id: string) => {
@@ -423,6 +334,35 @@ export default function Page() {
             <div className="relative h-[380px] overflow-hidden rounded-2xl border border-cyan-100/15 bg-[radial-gradient(circle_at_50%_18%,rgba(14,116,144,0.45)_0%,rgba(2,6,23,0.76)_55%,rgba(2,6,23,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_28px_70px_-42px_rgba(56,189,248,0.85)]">
               <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_right,rgba(125,211,252,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(125,211,252,0.06)_1px,transparent_1px)] [background-size:38px_38px]" />
               <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(2,6,23,0.72)_100%)]" />
+
+              <motion.div
+                className="pointer-events-none absolute inset-y-0 w-24 bg-gradient-to-r from-transparent via-cyan-300/10 to-transparent"
+                initial={{ x: -140, opacity: 0 }}
+                animate={{ x: 760, opacity: [0, 0.5, 0] }}
+                transition={{ duration: 4.8, repeat: Infinity, ease: "linear" }}
+              />
+
+              <div className="pointer-events-none absolute left-4 top-4 z-10 flex flex-wrap items-center gap-2">
+                <motion.span
+                  key={selectedCount}
+                  initial={{ scale: 0.86, opacity: 0.5 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  className="inline-flex items-center gap-1 rounded-full border border-cyan-200/35 bg-slate-950/70 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-cyan-100"
+                >
+                  <Radar size={12} /> {selectedCount} units selected
+                </motion.span>
+                {selectedCount > 0 && (
+                  <span className="inline-flex items-center gap-1 rounded-full border border-emerald-300/30 bg-emerald-400/10 px-2.5 py-1 text-[10px] uppercase tracking-[0.16em] text-emerald-100">
+                    <Sparkles size={11} /> Formation synced
+                  </span>
+                )}
+              </div>
+
+              <div className="pointer-events-none absolute bottom-4 left-4 right-4 z-10 flex items-center justify-between gap-4 rounded-xl border border-cyan-100/12 bg-slate-950/50 px-3 py-2 text-[10px] uppercase tracking-[0.15em] text-cyan-100/80">
+                <span>Engagement Layer · 3D Area</span>
+                <span>{selectedCount > 0 ? `Batch-ready · ${selectedCount} operator units` : "Select units for grouped orders"}</span>
+              </div>
+
               <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
                 <NodeCore />
               </Canvas>
@@ -430,32 +370,61 @@ export default function Page() {
 
             {viewMode === "commander" ? (
               <div className="mt-4 rounded-2xl border border-cyan-100/12 bg-white/[0.03] p-4 backdrop-blur-xl">
-                <div className="mb-3 flex items-center justify-between">
-                  <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/70">Tactical Map</p>
-                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Sector Sweep · 24 Nodes</p>
+                <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+                  <div>
+                    <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/70">Tactical Map</p>
+                    <p className="mt-1 text-[10px] uppercase tracking-[0.16em] text-slate-400">Sector Sweep · 24 Nodes</p>
+                  </div>
+                  <div className="flex items-center gap-3 text-[10px] uppercase tracking-[0.16em] text-slate-300">
+                    <span className="inline-flex items-center gap-1">
+                      <i className="h-2 w-2 rounded-full bg-cyan-100 shadow-[0_0_10px_1px_rgba(103,232,249,0.65)]" /> Active
+                    </span>
+                    <span className="inline-flex items-center gap-1">
+                      <i className="h-2 w-2 rounded-full bg-amber-300 shadow-[0_0_10px_1px_rgba(252,211,77,0.55)]" /> Assigned
+                    </span>
+                  </div>
                 </div>
                 <div className="grid grid-cols-6 gap-2">
-                  {Array.from({ length: 24 }).map((_, i) => {
-                    const active = i % 5 === 0 || i === 7 || i === 18;
-                    return (
+                  {tacticalCells.map((cell) => (
+                    <motion.div
+                      key={cell.id}
+                      animate={
+                        cell.focused
+                          ? { boxShadow: ["0 0 0 rgba(252,211,77,0)", "0 0 14px rgba(252,211,77,0.35)", "0 0 0 rgba(252,211,77,0)"] }
+                          : undefined
+                      }
+                      transition={{ duration: 2.2, repeat: Infinity }}
+                      className={`relative h-10 overflow-hidden rounded-md border ${
+                        cell.focused
+                          ? "border-amber-300/45 bg-gradient-to-br from-amber-400/18 via-slate-950/65 to-cyan-400/14"
+                          : "border-cyan-100/12 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-blue-500/12"
+                      }`}
+                    >
                       <div
-                        key={i}
-                        className="relative h-8 overflow-hidden rounded-md border border-cyan-100/12 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-blue-500/12"
-                      >
-                        <div
-                          className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.55)_0%,transparent_62%)] ${
-                            active ? "opacity-90" : "opacity-35"
-                          }`}
-                        />
-                        <div
-                          className={`absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${
-                            active ? "bg-cyan-100 shadow-[0_0_12px_2px_rgba(103,232,249,0.7)]" : "bg-cyan-900/70"
-                          }`}
-                        />
-                        <div className="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
-                      </div>
-                    );
-                  })}
+                        className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.55)_0%,transparent_62%)] ${
+                          cell.active ? "opacity-90" : "opacity-30"
+                        }`}
+                      />
+                      <div
+                        className={`absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${
+                          cell.focused
+                            ? "bg-amber-200 shadow-[0_0_12px_2px_rgba(252,211,77,0.6)]"
+                            : cell.active
+                              ? "bg-cyan-100 shadow-[0_0_12px_2px_rgba(103,232,249,0.7)]"
+                              : "bg-cyan-900/70"
+                        }`}
+                      />
+                      <p className="absolute right-1.5 top-1 text-[9px] font-medium tracking-[0.14em] text-cyan-100/80">
+                        {String.fromCharCode(65 + cell.row)}{cell.col + 1}
+                      </p>
+                      {cell.linked && (
+                        <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-amber-100">
+                          {cell.linked.name}
+                        </p>
+                      )}
+                      <div className="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+                    </motion.div>
+                  ))}
                 </div>
               </div>
             ) : (
@@ -463,7 +432,9 @@ export default function Page() {
                 <div className="rounded-xl border border-cyan-100/10 bg-slate-950/50 p-4">
                   <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/70">Selected Unit</p>
                   <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
-                  <p className="mt-1 text-xs text-slate-300">{selected?.provider} · {selected?.model}</p>
+                  <p className="mt-1 text-xs text-slate-300">
+                    {selected?.provider} · {selected?.model}
+                  </p>
                 </div>
                 <div className="grid gap-3">
                   <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-200">
@@ -509,99 +480,142 @@ export default function Page() {
             </div>
 
             <div className="mb-3 flex flex-wrap items-center gap-2 rounded-xl border border-cyan-100/12 bg-slate-900/45 p-2 text-xs">
-              <span className="px-2 text-slate-300">Selected: {selectedBots.length}</span>
-              <button onClick={() => applyBatchAction("enable")} className="rounded-lg border border-emerald-300/25 px-2 py-1 text-emerald-200 hover:bg-emerald-500/10">Enable</button>
-              <button onClick={() => applyBatchAction("disable")} className="rounded-lg border border-rose-300/25 px-2 py-1 text-rose-200 hover:bg-rose-500/10">Disable</button>
-              <button onClick={() => applyBatchAction("pause")} className="rounded-lg border border-amber-300/25 px-2 py-1 text-amber-200 hover:bg-amber-500/10">Pause</button>
-              <button onClick={() => applyBatchAction("resume")} className="rounded-lg border border-cyan-300/25 px-2 py-1 text-cyan-200 hover:bg-cyan-500/10">Resume</button>
-              <button onClick={() => setSelectedBots([])} className="rounded-lg border border-white/20 px-2 py-1 text-slate-300 hover:bg-white/10">Clear</button>
+              <motion.span
+                key={selectedCount}
+                initial={{ scale: 0.9, opacity: 0.6 }}
+                animate={{ scale: 1, opacity: 1 }}
+                className="rounded-lg border border-cyan-200/25 bg-cyan-400/10 px-2 py-1 text-cyan-100"
+              >
+                Selected: {selectedCount}
+              </motion.span>
+              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("enable")} tone="emerald">
+                Enable
+              </BatchButton>
+              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("disable")} tone="rose">
+                Disable
+              </BatchButton>
+              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("pause")} tone="amber">
+                Pause
+              </BatchButton>
+              <BatchButton disabled={!selectedCount} onClick={() => applyBatchAction("resume")} tone="cyan">
+                Resume
+              </BatchButton>
+              <button
+                onClick={() => setSelectedBots([])}
+                disabled={!selectedCount}
+                className="rounded-lg border border-white/20 px-2 py-1 text-slate-300 transition hover:bg-white/10 disabled:cursor-not-allowed disabled:opacity-45"
+              >
+                Clear
+              </button>
+              <p className="ml-auto pr-1 text-[10px] uppercase tracking-[0.14em] text-slate-400">
+                {selectedCount > 0 ? "Batch command armed" : "Select bots to unlock batch actions"}
+              </p>
             </div>
 
             <div className="grid gap-3 md:grid-cols-2">
-              {bots.map((b) => (
-                <div
-                  key={b.id}
-                  className={`rounded-2xl border p-4 backdrop-blur-xl transition ${
-                    selectedId === b.id
-                      ? "border-cyan-200/45 bg-gradient-to-br from-cyan-400/16 via-slate-900/70 to-blue-500/14 shadow-[0_0_34px_-18px_rgba(34,211,238,0.9)]"
-                      : "border-white/10 bg-slate-950/55 hover:border-cyan-100/30 hover:bg-slate-900/72"
-                  }`}
-                >
-                  <div className="mb-2 flex items-center justify-between gap-2">
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="checkbox"
-                        checked={selectedBots.includes(b.id)}
-                        onChange={() => toggleBotSelection(b.id)}
-                        className="h-4 w-4 rounded border-cyan-200/40 bg-slate-900 text-cyan-300"
-                      />
-                      <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                        <p className="text-base font-semibold text-white">{b.name}</p>
-                        <p className="mt-0.5 text-xs text-slate-300">{b.provider} · {b.model}</p>
+              {bots.map((b) => {
+                const batchSelected = selectedBots.includes(b.id);
+
+                return (
+                  <motion.div
+                    whileHover={{ y: -2 }}
+                    transition={{ duration: 0.2 }}
+                    key={b.id}
+                    className={`rounded-2xl border p-4 backdrop-blur-xl transition ${
+                      selectedId === b.id
+                        ? "border-cyan-200/45 bg-gradient-to-br from-cyan-400/16 via-slate-900/70 to-blue-500/14 shadow-[0_0_34px_-18px_rgba(34,211,238,0.9)]"
+                        : "border-white/10 bg-slate-950/55 hover:border-cyan-100/30 hover:bg-slate-900/72"
+                    } ${batchSelected ? "ring-1 ring-amber-300/45" : ""}`}
+                  >
+                    <div className="mb-2 flex items-center justify-between gap-2">
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="checkbox"
+                          checked={batchSelected}
+                          onChange={() => toggleBotSelection(b.id)}
+                          className="h-4 w-4 rounded border-cyan-200/40 bg-slate-900 text-cyan-300"
+                        />
+                        <button className="text-left" onClick={() => setSelectedId(b.id)}>
+                          <p className="text-base font-semibold text-white">{b.name}</p>
+                          <p className="mt-0.5 text-xs text-slate-300">
+                            {b.provider} · {b.model}
+                          </p>
+                        </button>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {batchSelected && (
+                          <span className="rounded-full border border-amber-300/35 bg-amber-400/15 px-2 py-1 text-[10px] uppercase tracking-[0.16em] text-amber-100">
+                            grouped
+                          </span>
+                        )}
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                            b.priority === "high"
+                              ? "border border-rose-300/20 bg-rose-500/20 text-rose-200"
+                              : b.priority === "med"
+                                ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
+                                : "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                          }`}
+                        >
+                          {b.priority}
+                        </span>
+                        <span
+                          className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                            b.status === "running"
+                              ? "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                              : b.status === "paused"
+                                ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
+                                : "border border-slate-300/20 bg-slate-500/30 text-slate-200"
+                          }`}
+                        >
+                          {b.status}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="mt-4 flex flex-wrap gap-2">
+                      <button
+                        onClick={() => {
+                          setSelectedId(b.id);
+                          setShowConfig(true);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                      >
+                        <Settings size={13} /> Config
+                      </button>
+                      <button
+                        onClick={() => {
+                          const next: BotConfig[] = bots.map((x) =>
+                            x.id === b.id
+                              ? { ...x, status: (x.status === "paused" ? "running" : "paused") as BotConfig["status"] }
+                              : x,
+                          );
+                          persist(next);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                      >
+                        {b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}
+                        {b.status === "paused" ? "Resume" : "Pause"}
+                      </button>
+                      <button
+                        onClick={() => {
+                          const next = bots.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x));
+                          persist(next);
+                        }}
+                        className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                      >
+                        <Power size={13} /> {b.enabled ? "Disable" : "Enable"}
+                      </button>
+                      <button
+                        onClick={() => deleteBot(b.id)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-rose-300/22 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/14"
+                      >
+                        <Trash2 size={13} /> Delete
                       </button>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
-                          b.priority === "high"
-                            ? "border border-rose-300/20 bg-rose-500/20 text-rose-200"
-                            : b.priority === "med"
-                              ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
-                              : "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
-                        }`}
-                      >
-                        {b.priority}
-                      </span>
-                      <span
-                        className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
-                          b.status === "running"
-                            ? "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
-                            : b.status === "paused"
-                              ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
-                              : "border border-slate-300/20 bg-slate-500/30 text-slate-200"
-                        }`}
-                      >
-                        {b.status}
-                      </span>
-                    </div>
-                  </div>
-
-                  <div className="mt-4 flex flex-wrap gap-2">
-                    <button
-                      onClick={() => {
-                        setSelectedId(b.id);
-                        setShowConfig(true);
-                      }}
-                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
-                    >
-                      <Settings size={13} /> Config
-                    </button>
-                    <button
-                      onClick={() =>
-                        setBots((s) =>
-                          s.map((x) => (x.id === b.id ? { ...x, status: x.status === "paused" ? "running" : "paused" } : x)),
-                        )
-                      }
-                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
-                    >
-                      {b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}
-                      {b.status === "paused" ? "Resume" : "Pause"}
-                    </button>
-                    <button
-                      onClick={() => setBots((s) => s.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x)))}
-                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
-                    >
-                      <Power size={13} /> {b.enabled ? "Disable" : "Enable"}
-                    </button>
-                    <button
-                      onClick={() => deleteBot(b.id)}
-                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300/22 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/14"
-                    >
-                      <Trash2 size={13} /> Delete
-                    </button>
-                  </div>
-                </div>
-              ))}
+                  </motion.div>
+                );
+              })}
             </div>
           </div>
         </section>
@@ -631,7 +645,9 @@ export default function Page() {
                 <Settings size={16} /> Open Config Drawer
               </button>
             </div>
-            <p className="mt-4 rounded-lg border border-cyan-100/12 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">{gatewayMsg || "Gateway ready"}</p>
+            <p className="mt-4 rounded-lg border border-cyan-100/12 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">
+              {gatewayMsg || "Gateway ready"}
+            </p>
           </div>
         </section>
       </div>
@@ -654,13 +670,29 @@ export default function Page() {
               <div className="grid gap-3 md:grid-cols-2">
                 <Field label="Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
                 <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
-                <Field label="Provider" value={selected.provider} onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })} />
-                <Field label="Thinking" value={selected.thinking} onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })} />
-                <Field label="Priority" value={selected.priority} onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })} />
+                <Field
+                  label="Provider"
+                  value={selected.provider}
+                  onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })}
+                />
+                <Field
+                  label="Thinking"
+                  value={selected.thinking}
+                  onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })}
+                />
+                <Field
+                  label="Priority"
+                  value={selected.priority}
+                  onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })}
+                />
                 <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
                 <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
                 <div className="md:col-span-2">
-                  <Field label="Allowed Tools" value={selected.allowedTools} onChange={(v) => updateBot({ allowedTools: v })} />
+                  <Field
+                    label="Allowed Tools"
+                    value={selected.allowedTools}
+                    onChange={(v) => updateBot({ allowedTools: v })}
+                  />
                 </div>
               </div>
 
@@ -692,6 +724,37 @@ function Card({ title, value, sub }: { title: string; value: string; sub: string
       <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
       <p className="mt-1 text-xs text-slate-300">{sub}</p>
     </div>
+  );
+}
+
+function BatchButton({
+  children,
+  onClick,
+  disabled,
+  tone,
+}: {
+  children: string;
+  onClick: () => void;
+  disabled: boolean;
+  tone: "emerald" | "rose" | "amber" | "cyan";
+}) {
+  const toneClass =
+    tone === "emerald"
+      ? "border-emerald-300/25 text-emerald-200 hover:bg-emerald-500/10"
+      : tone === "rose"
+        ? "border-rose-300/25 text-rose-200 hover:bg-rose-500/10"
+        : tone === "amber"
+          ? "border-amber-300/25 text-amber-200 hover:bg-amber-500/10"
+          : "border-cyan-300/25 text-cyan-200 hover:bg-cyan-500/10";
+
+  return (
+    <button
+      onClick={onClick}
+      disabled={disabled}
+      className={`rounded-lg border px-2 py-1 transition disabled:cursor-not-allowed disabled:opacity-45 ${toneClass}`}
+    >
+      {children}
+    </button>
   );
 }
 
