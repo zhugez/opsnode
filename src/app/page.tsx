@@ -869,7 +869,36 @@ export default function Page() {
     }
   };
 
-  const health = Math.round((bots.filter((b) => b.enabled).length / Math.max(1, bots.length)) * 100);
+  const enabledCount = useMemo(() => bots.filter((b) => b.enabled).length, [bots]);
+  const runningCount = useMemo(() => bots.filter((b) => b.status === "running").length, [bots]);
+  const pausedCount = useMemo(() => bots.filter((b) => b.status === "paused").length, [bots]);
+  const idleCount = useMemo(() => bots.filter((b) => b.status === "idle").length, [bots]);
+  const disabledCount = bots.length - enabledCount;
+
+  const roleCounts = useMemo(
+    () =>
+      bots.reduce(
+        (acc, bot) => {
+          acc[bot.archetype] += 1;
+          return acc;
+        },
+        { sentinel: 0, sniper: 0, analyst: 0, medic: 0 } as Record<BotArchetype, number>,
+      ),
+    [bots],
+  );
+
+  const missionQueue = useMemo(
+    () => [
+      `${runningCount} active execution nodes`,
+      `${pausedCount} paused nodes awaiting resume`,
+      `${idleCount} idle units ready for assignment`,
+      `${selectedCount} units in selection scope`,
+    ],
+    [runningCount, pausedCount, idleCount, selectedCount],
+  );
+
+  const health = Math.round((enabledCount / Math.max(1, bots.length)) * 100);
+  const missionState = runningCount > 0 ? "Engaged" : pausedCount > 0 ? "Holding" : "Standby";
   const zoomPercent = Math.round(((cameraDistance - MIN_CAMERA_DISTANCE) / (MAX_CAMERA_DISTANCE - MIN_CAMERA_DISTANCE)) * 100);
   const setDistanceTarget = (next: number) => {
     const clamped = Math.min(MAX_CAMERA_DISTANCE, Math.max(MIN_CAMERA_DISTANCE, Number(next.toFixed(2))));
@@ -884,13 +913,43 @@ export default function Page() {
   return (
     <main className="relative min-h-screen overflow-hidden bg-[#0b1220] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
       <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(30,41,59,0.96)_0%,rgba(15,23,42,0.94)_48%,rgba(7,12,24,0.98)_100%)]" />
-        <div className="absolute left-0 top-0 h-[46%] w-full bg-[radial-gradient(ellipse_at_top,rgba(148,163,184,0.10)_0%,rgba(148,163,184,0.02)_48%,transparent_78%)]" />
-        <div className="absolute -left-16 top-[4%] h-[320px] w-[320px] rounded-full bg-sky-300/[0.05] blur-[140px]" />
-        <div className="absolute -right-10 top-[10%] h-[280px] w-[280px] rounded-full bg-indigo-300/[0.05] blur-[140px]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(20,26,38,0.98)_0%,rgba(12,16,27,0.98)_56%,rgba(8,11,19,1)_100%)]" />
+        <div className="absolute left-0 top-0 h-[40%] w-full bg-[radial-gradient(ellipse_at_top,rgba(125,211,252,0.06)_0%,rgba(125,211,252,0.02)_50%,transparent_78%)]" />
       </div>
 
       <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
+        <section className={`${panelShell} lg:col-span-12 p-4 md:p-5`}>
+          <div className="relative grid gap-4 lg:grid-cols-12">
+            <div className="lg:col-span-4">
+              <p className="text-[10px] uppercase tracking-[0.32em] text-cyan-100/45">OpsNode · V4</p>
+              <h1 className="mt-1 text-2xl font-semibold tracking-tight text-white md:text-3xl">Command Center</h1>
+              <p className="mt-1 text-xs text-slate-400">Live command hierarchy for mission state, roles, and field control.</p>
+            </div>
+            <div className="grid gap-2 sm:grid-cols-2 lg:col-span-5 lg:grid-cols-4">
+              <Card title="Units" value={`${bots.length}`} sub={`${enabledCount} enabled`} compact />
+              <Card title="Running" value={`${runningCount}`} sub="Live execution" compact />
+              <Card title="Paused" value={`${pausedCount}`} sub="Awaiting resume" compact />
+              <Card title="Selected" value={`${selectedCount}`} sub="Command scope" compact />
+            </div>
+            <div className="rounded-xl border border-white/[0.08] bg-black/25 p-3 lg:col-span-3">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-400">Mission State</p>
+              <p className="mt-1 text-xl font-semibold text-white">{missionState}</p>
+              <p className="mt-1 text-xs text-slate-400">Operational integrity {health}% · {disabledCount} disabled</p>
+            </div>
+            <div className="rounded-xl border border-white/[0.06] bg-black/20 p-3 lg:col-span-12">
+              <p className="text-[10px] uppercase tracking-[0.18em] text-slate-500">Role Distribution</p>
+              <div className="mt-2 grid gap-2 sm:grid-cols-2 lg:grid-cols-4">
+                {(Object.keys(roleCounts) as BotArchetype[]).map((key) => (
+                  <div key={key} className="rounded-lg border border-white/[0.06] bg-white/[0.02] px-3 py-2">
+                    <p className="text-[10px] uppercase tracking-[0.16em] text-slate-500">{ARCHETYPES[key].label}</p>
+                    <p className="text-lg font-semibold text-white">{roleCounts[key]}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        </section>
+
         <motion.section
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
@@ -900,12 +959,12 @@ export default function Page() {
           <div className="relative">
             <div className="mb-6 flex flex-wrap items-start justify-between gap-3">
               <div>
-                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-100/40">OpsNode</p>
-                <h1 className="mt-1.5 text-3xl font-semibold tracking-tight text-white md:text-4xl">Commander Bridge</h1>
-                <p className="mt-1.5 text-sm text-slate-400">Manage your squad loadouts and operations</p>
+                <p className="text-[10px] uppercase tracking-[0.3em] text-cyan-100/35">Primary Stage</p>
+                <h2 className="mt-1.5 text-2xl font-semibold tracking-tight text-white md:text-3xl">Spatial Command View</h2>
+                <p className="mt-1.5 text-sm text-slate-400">Select, group, and dispatch units from a clean RTS framing.</p>
               </div>
-              <span className="rounded-full border border-emerald-400/15 bg-emerald-400/[0.06] px-2.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.18em] text-emerald-300/70">
-                Live
+              <span className="rounded-full border border-emerald-400/20 bg-emerald-400/[0.08] px-2.5 py-0.5 text-[9px] font-medium uppercase tracking-[0.18em] text-emerald-300/80">
+                Live Telemetry
               </span>
             </div>
 
@@ -946,12 +1005,13 @@ export default function Page() {
                 </motion.span>
               </div>
 
-              <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg bg-black/40 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-400 backdrop-blur-md">
-                Orbit · Zoom · Click to select
+              <div className="pointer-events-none absolute right-3 top-3 z-10 rounded-lg bg-black/40 px-2 py-1 text-[9px] uppercase tracking-[0.12em] text-slate-300 backdrop-blur-md">
+                Orbit · Zoom · Shift+Click multi-select
               </div>
 
-              <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/40 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.12em] text-slate-400 backdrop-blur-md">
-                {loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to begin"}
+              <div className="pointer-events-none absolute bottom-3 left-3 z-10 rounded-lg bg-black/45 px-2.5 py-1.5 text-[9px] uppercase tracking-[0.12em] text-slate-300 backdrop-blur-md">
+                <p>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to begin"}</p>
+                <p className="mt-0.5 text-[8px] tracking-[0.08em] text-slate-400">● Idle · ● Running · ● Paused</p>
               </div>
 
               <div className="absolute bottom-12 right-3 z-20 w-[180px] rounded-xl bg-black/50 p-2.5 backdrop-blur-xl">
@@ -1089,9 +1149,25 @@ export default function Page() {
         </motion.section>
 
         <section className="grid gap-4 lg:col-span-4">
-          <Card title="Units" value={`${bots.length}`} sub={`${bots.filter((b) => b.enabled).length} active`} />
-          <Card title="Health" value={`${health}%`} sub="Control plane availability" />
-          <Card title="Loadout" value={`${loadoutUnits.length}/4`} sub="Squad slots occupied" />
+          <Card title="Operational" value={`${health}%`} sub={`${runningCount} running · ${pausedCount} paused`} />
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Mission Queue</p>
+            <ul className="mt-2 space-y-1.5 text-xs text-slate-300">
+              {missionQueue.map((item) => (
+                <li key={item} className="rounded-md border border-white/[0.04] bg-black/20 px-2 py-1.5">
+                  {item}
+                </li>
+              ))}
+            </ul>
+          </div>
+          <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
+            <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">Status Legend</p>
+            <div className="mt-2 grid gap-2 text-xs">
+              <p className="rounded-md border border-emerald-400/20 bg-emerald-500/8 px-2 py-1 text-emerald-200">Running: actively executing tasks</p>
+              <p className="rounded-md border border-amber-400/20 bg-amber-500/8 px-2 py-1 text-amber-200">Paused: held for command input</p>
+              <p className="rounded-md border border-slate-400/20 bg-slate-500/8 px-2 py-1 text-slate-300">Idle: ready but not currently executing</p>
+            </div>
+          </div>
           <Card title="Gateway" value="Bound" sub="/api/gateway-action wired" />
         </section>
 
@@ -1476,12 +1552,22 @@ function UnitPortrait({ src, alt, className = "h-full w-full object-cover" }: { 
   return <img src={src} alt={alt} className={className} draggable={false} />;
 }
 
-function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
+function Card({
+  title,
+  value,
+  sub,
+  compact = false,
+}: {
+  title: string;
+  value: string;
+  sub: string;
+  compact?: boolean;
+}) {
   return (
-    <div className="relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 p-4 backdrop-blur-xl">
-      <p className="text-[10px] uppercase tracking-[0.22em] text-slate-400">{title}</p>
-      <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
-      <p className="mt-1 text-xs text-slate-400">{sub}</p>
+    <div className={`relative overflow-hidden rounded-xl border border-white/[0.06] bg-slate-900/40 backdrop-blur-xl ${compact ? "p-3" : "p-4"}`}>
+      <p className={`uppercase tracking-[0.22em] text-slate-400 ${compact ? "text-[9px]" : "text-[10px]"}`}>{title}</p>
+      <p className={`font-semibold tracking-tight text-white ${compact ? "mt-1 text-2xl" : "mt-2 text-3xl"}`}>{value}</p>
+      <p className={`text-slate-400 ${compact ? "mt-0.5 text-[11px]" : "mt-1 text-xs"}`}>{sub}</p>
     </div>
   );
 }
