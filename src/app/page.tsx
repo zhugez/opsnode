@@ -199,10 +199,10 @@ const ARCHETYPE_RENDER: Record<
   BotArchetype,
   { shell: string; trim: string; accent: string; emissive: string; icon: string }
 > = {
-  sentinel: { shell: "#cbd5e1", trim: "#94a3b8", accent: "#7dd3fc", emissive: "#0ea5e9", icon: "shield" },
-  sniper: { shell: "#d4d4d8", trim: "#a1a1aa", accent: "#c4b5fd", emissive: "#8b5cf6", icon: "reticle" },
-  analyst: { shell: "#cbd5e1", trim: "#94a3b8", accent: "#93c5fd", emissive: "#3b82f6", icon: "core" },
-  medic: { shell: "#d1fae5", trim: "#99f6e4", accent: "#5eead4", emissive: "#14b8a6", icon: "cross" },
+  sentinel: { shell: "#d8d2c9", trim: "#8a909a", accent: "#8fb8ff", emissive: "#375a9a", icon: "shield" },
+  sniper: { shell: "#d9d4cf", trim: "#8a8580", accent: "#bca8f0", emissive: "#5d4a8f", icon: "reticle" },
+  analyst: { shell: "#d7d3ce", trim: "#7d8693", accent: "#90b2d8", emissive: "#436384", icon: "core" },
+  medic: { shell: "#d5d7d2", trim: "#7f8a84", accent: "#8cbcab", emissive: "#2f6f5b", icon: "cross" },
 };
 
 const STATUS_STYLE: Record<BotConfig["status"], { color: string; accent: string }> = {
@@ -240,7 +240,7 @@ function assignDeskSlots(list: BotConfig[]) {
 function unitSlotPosition(i: number): Vec3 {
   const row = Math.floor(i / 4);
   const col = i % 4;
-  return [col * 0.78 - 1.17, 0.08, row * 0.66 - 0.24];
+  return [col * 0.86 - 1.29, 0.09, row * 0.72 - 0.33];
 }
 
 function formationSlot(i: number): Vec3 {
@@ -256,92 +256,91 @@ function formationSlot(i: number): Vec3 {
 }
 
 function SceneEnvironment({ onClearSelection }: { onClearSelection: () => void }) {
-  const cableRun: Vec3[] = [
-    [-1.6, 0.12, 0.3],
-    [-0.8, 0.16, 0.1],
-    [0, 0.14, 0],
-    [0.8, 0.16, -0.1],
-    [1.6, 0.12, -0.3],
+  const inlayRun: Vec3[] = [
+    [-1.85, 0.01, 0.68],
+    [-0.95, 0.01, 0.36],
+    [0, 0.01, 0.22],
+    [0.95, 0.01, 0.36],
+    [1.85, 0.01, 0.68],
   ];
 
   return (
     <>
-      <color attach="background" args={["#0f172a"]} />
-      <ambientLight intensity={0.56} />
-      <directionalLight position={[4, 5, 2]} intensity={1.2} color="#d8ecff" />
-      <pointLight position={[0, 2.2, 1.4]} intensity={0.7} color="#7dd3fc" />
-      <pointLight position={[0, 0.95, -2.2]} intensity={0.42} color="#6366f1" />
+      <color attach="background" args={["#0b0d11"]} />
+      <ambientLight intensity={0.44} color="#f4efe7" />
+      <directionalLight position={[2.4, 4.6, 3.2]} intensity={1.05} color="#fff4df" />
+      <directionalLight position={[-3.8, 2.2, -2.6]} intensity={0.33} color="#9caec6" />
+      <pointLight position={[0, 2.25, -0.1]} intensity={0.36} color="#ffe4c6" />
 
       <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
-        <planeGeometry args={[8, 6]} />
-        <meshStandardMaterial color="#192538" roughness={0.86} metalness={0.08} />
+        <planeGeometry args={[9, 6.8]} />
+        <meshStandardMaterial color="#141820" roughness={0.74} metalness={0.14} />
       </mesh>
 
-      <mesh position={[0, 1.0, -2.35]}>
-        <boxGeometry args={[6.4, 2.8, 0.08]} />
-        <meshStandardMaterial color="#1e2e45" roughness={0.3} metalness={0.2} />
+      <mesh position={[0, -0.565, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+        <planeGeometry args={[3.8, 2.6]} />
+        <meshStandardMaterial color="#1f242d" roughness={0.28} metalness={0.42} />
       </mesh>
 
-      <mesh position={[0, 0.07, -0.25]}>
-        <boxGeometry args={[2.9, 0.14, 1.44]} />
-        <meshStandardMaterial color="#2b3c57" roughness={0.34} metalness={0.48} />
+      <mesh position={[0, 1.02, -2.36]}>
+        <boxGeometry args={[6.8, 2.95, 0.08]} />
+        <meshStandardMaterial color="#1c2028" roughness={0.52} metalness={0.24} />
       </mesh>
+
+      <mesh position={[0, 1.04, -2.315]}>
+        <boxGeometry args={[5.2, 1.6, 0.02]} />
+        <meshStandardMaterial color="#cbc4b8" roughness={0.22} metalness={0.1} emissive="#b4aa97" emissiveIntensity={0.11} />
+      </mesh>
+
+      <mesh position={[0, 0.04, -0.24]}>
+        <boxGeometry args={[3.4, 0.12, 1.78]} />
+        <meshStandardMaterial color="#2b313d" roughness={0.31} metalness={0.49} />
+      </mesh>
+      {[-1.32, 1.32].map((x) => (
+        <mesh key={x} position={[x, -0.2, -0.24]}>
+          <boxGeometry args={[0.22, 0.45, 1.26]} />
+          <meshStandardMaterial color="#2a3038" roughness={0.58} metalness={0.2} />
+        </mesh>
+      ))}
 
       {Array.from({ length: DESK_SLOT_COUNT }).map((_, i) => {
         const [x, y, z] = unitSlotPosition(i);
         return (
-          <group key={`desk-slot-${i}`} position={[x, y - 0.05, z]}>
+          <group key={`desk-slot-${i}`} position={[x, y - 0.066, z]}>
             <mesh rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.18, 0.22, 28]} />
-              <meshBasicMaterial color="#38bdf8" transparent opacity={0.24} />
+              <ringGeometry args={[0.172, 0.204, 24]} />
+              <meshBasicMaterial color="#d6c2a4" transparent opacity={0.2} />
             </mesh>
-            <mesh position={[0, -0.01, 0]}>
-              <cylinderGeometry args={[0.16, 0.16, 0.02, 20]} />
-              <meshStandardMaterial color="#233348" roughness={0.75} metalness={0.2} />
-            </mesh>
-            <mesh position={[0, 0.075, -0.14]}>
-              <boxGeometry args={[0.12, 0.05, 0.02]} />
-              <meshStandardMaterial color="#334155" emissive="#164e63" emissiveIntensity={0.3} />
+            <mesh position={[0, -0.006, 0]}>
+              <cylinderGeometry args={[0.154, 0.154, 0.016, 18]} />
+              <meshStandardMaterial color="#232a33" roughness={0.72} metalness={0.16} />
             </mesh>
           </group>
         );
       })}
 
-      {[-0.95, -0.32, 0.32, 0.95].map((x, i) => (
-        <group key={i} position={[x, 0.38, -0.74]}>
+      {[-1.02, -0.34, 0.34, 1.02].map((x, i) => (
+        <group key={i} position={[x, 0.39, -0.76]}>
           <mesh>
-            <boxGeometry args={[0.5, 0.31, 0.03]} />
-            <meshStandardMaterial color="#7dd3fc" emissive="#0e4f73" emissiveIntensity={0.75} roughness={0.2} />
+            <boxGeometry args={[0.45, 0.25, 0.025]} />
+            <meshStandardMaterial color="#dfd7ca" emissive="#a89f92" emissiveIntensity={0.08} roughness={0.22} metalness={0.14} />
           </mesh>
-          <mesh position={[0, -0.2, 0]}>
-            <boxGeometry args={[0.08, 0.16, 0.08]} />
-            <meshStandardMaterial color="#7b8ca7" roughness={0.5} />
+          <mesh position={[0, -0.155, 0]}>
+            <boxGeometry args={[0.07, 0.11, 0.07]} />
+            <meshStandardMaterial color="#6f7784" roughness={0.52} />
           </mesh>
         </group>
       ))}
 
-      {[-1.0, 1.0].map((x, i) => (
-        <group key={i} position={[x, -0.22, 0.42]}>
-          <mesh>
-            <cylinderGeometry args={[0.2, 0.2, 0.22, 20]} />
-            <meshStandardMaterial color="#4b5563" roughness={0.65} />
-          </mesh>
-          <mesh position={[0, 0.2, -0.08]}>
-            <boxGeometry args={[0.34, 0.28, 0.24]} />
-            <meshStandardMaterial color="#334155" roughness={0.56} />
-          </mesh>
-        </group>
-      ))}
-
-      <Float speed={1} rotationIntensity={0.09} floatIntensity={0.14}>
-        <mesh position={[0, 0.72, -0.12]} rotation={[Math.PI / 2, 0, 0]}>
-          <torusGeometry args={[0.52, 0.018, 16, 100]} />
-          <meshStandardMaterial color="#93c5fd" emissive="#1d4ed8" emissiveIntensity={0.62} />
+      <Float speed={0.8} rotationIntensity={0.03} floatIntensity={0.08}>
+        <mesh position={[0, 1.95, -0.4]} rotation={[Math.PI / 2, 0, 0]}>
+          <torusGeometry args={[0.48, 0.015, 12, 64]} />
+          <meshStandardMaterial color="#e6d8c4" emissive="#d6c2a4" emissiveIntensity={0.16} roughness={0.3} metalness={0.18} />
         </mesh>
       </Float>
 
-      <Line points={cableRun} color="#7dd3fc" lineWidth={1.2} transparent opacity={0.46} />
-      <Line points={[[0, 0.42, -0.72], [0, 0.72, -0.12], [0, 1.4, -2.3]]} color="#93c5fd" lineWidth={0.8} transparent opacity={0.35} />
+      <Line points={inlayRun} color="#d6c2a4" lineWidth={1} transparent opacity={0.2} />
+      <Line points={[[0, 0.06, -1.1], [0, 0.35, -0.75], [0, 1.04, -2.3]]} color="#e2d7c6" lineWidth={0.8} transparent opacity={0.16} />
     </>
   );
 }
@@ -975,7 +974,7 @@ export default function Page() {
                 <span>{loadoutUnits.length > 0 ? `${loadoutUnits.length} units on duty` : "Recruit units to fill roster"}</span>
               </div>
 
-              <Canvas camera={{ position: [0, 0.35, 4.3], fov: 55 }}>
+              <Canvas camera={{ position: [0, 0.42, 4.6], fov: 52 }}>
                 <NodeCore
                   bots={bots.filter((b) => b.enabled)}
                   selectedBots={selectedBots}
