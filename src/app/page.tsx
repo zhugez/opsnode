@@ -81,32 +81,40 @@ function NodeCore() {
     [1, -0.3, -0.4],
     [2, 0.9, 0.8],
   ];
+
   return (
     <>
-      <ambientLight intensity={0.5} />
-      <pointLight position={[2, 2, 3]} intensity={1.2} color="#66e3ff" />
-      <pointLight position={[-2, -1, 1]} intensity={0.8} color="#7c83ff" />
-      <Float speed={1.5} rotationIntensity={0.4} floatIntensity={0.8}>
+      <ambientLight intensity={0.45} />
+      <pointLight position={[2.5, 2.2, 2.8]} intensity={1.3} color="#73e3ff" />
+      <pointLight position={[-2.2, -1.3, 1.1]} intensity={0.9} color="#6875ff" />
+      <Float speed={1.2} rotationIntensity={0.35} floatIntensity={0.9}>
         <Sphere args={[1.1, 64, 64]}>
           <MeshDistortMaterial
-            color="#5bd1ff"
-            emissive="#1a6a8c"
-            emissiveIntensity={0.6}
-            roughness={0.1}
-            metalness={0.35}
-            distort={0.35}
+            color="#62d8ff"
+            emissive="#1a6286"
+            emissiveIntensity={0.7}
+            roughness={0.08}
+            metalness={0.45}
+            distort={0.3}
             speed={2}
           />
         </Sphere>
       </Float>
-      <Line points={points} color="#88a5ff" lineWidth={1.2} transparent opacity={0.7} />
+      <Float speed={0.8} rotationIntensity={0.25} floatIntensity={0.45}>
+        <mesh rotation={[Math.PI / 2.2, 0, 0]}>
+          <torusGeometry args={[1.65, 0.017, 18, 140]} />
+          <meshStandardMaterial color="#76d6ff" emissive="#24496d" emissiveIntensity={0.7} />
+        </mesh>
+      </Float>
+      <Line points={points} color="#8fc7ff" lineWidth={1.2} transparent opacity={0.72} />
+      <Line points={[points[0], points[2], points[4]]} color="#bde8ff" lineWidth={0.9} transparent opacity={0.45} />
       {points.map((p, i) => (
         <mesh key={i} position={p}>
-          <sphereGeometry args={[0.06, 16, 16]} />
-          <meshStandardMaterial color="#d9f6ff" emissive="#82dfff" emissiveIntensity={0.8} />
+          <sphereGeometry args={[i === 2 ? 0.085 : 0.06, 18, 18]} />
+          <meshStandardMaterial color="#e5f8ff" emissive="#89e3ff" emissiveIntensity={0.9} />
         </mesh>
       ))}
-      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.9} />
+      <OrbitControls enablePan={false} enableZoom={false} autoRotate autoRotateSpeed={0.85} />
     </>
   );
 }
@@ -215,36 +223,122 @@ export default function Page() {
 
   const health = Math.round((bots.filter((b) => b.enabled).length / Math.max(1, bots.length)) * 100);
 
+  const panelShell =
+    "relative overflow-hidden rounded-[28px] border border-cyan-100/10 bg-slate-950/40 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_24px_80px_-42px_rgba(56,189,248,0.8)]";
+  const modeButton =
+    "rounded-lg px-3.5 py-1.5 text-[11px] font-medium uppercase tracking-[0.18em] transition duration-200";
+
   return (
-    <main className="min-h-screen bg-[radial-gradient(circle_at_top,#10213c_0%,#090d16_55%,#05070d_100%)] p-6 text-white md:p-10">
-      <div className="mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
-        <motion.section initial={{ opacity: 0, y: 14 }} animate={{ opacity: 1, y: 0 }} className="lg:col-span-8 rounded-3xl border border-cyan-300/20 bg-slate-950/45 p-4 md:p-6">
-          <div className="mb-4 flex items-center justify-between">
-            <div>
-              <h1 className="text-2xl font-bold tracking-tight md:text-3xl">OpsNode</h1>
-              <p className="text-sm text-cyan-100/80">3D command cockpit · Bot manager + config</p>
-            </div>
-            <span className="rounded-full bg-emerald-400/20 px-3 py-1 text-xs text-emerald-300">LIVE</span>
-          </div>
-          <div className="mb-3 flex items-center gap-2">
-            <button onClick={() => setViewMode("commander")} className={`rounded-lg px-3 py-1.5 text-xs ${viewMode === "commander" ? "bg-cyan-500 text-slate-950" : "border border-white/20 text-slate-200"}`}>Commander</button>
-            <button onClick={() => setViewMode("detail")} className={`rounded-lg px-3 py-1.5 text-xs ${viewMode === "detail" ? "bg-cyan-500 text-slate-950" : "border border-white/20 text-slate-200"}`}>Detail</button>
-          </div>
-          <div className="h-[360px] rounded-2xl border border-cyan-200/20 bg-slate-900/50">
-            <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
-              <NodeCore />
-            </Canvas>
-          </div>
-          {viewMode === "commander" && (
-            <div className="mt-3 rounded-2xl border border-cyan-300/20 bg-slate-900/40 p-3">
-              <p className="mb-2 text-xs text-cyan-200">Tactical Map</p>
-              <div className="grid grid-cols-6 gap-1">
-                {Array.from({ length: 24 }).map((_, i) => (
-                  <div key={i} className="h-6 rounded bg-cyan-400/10" />
-                ))}
+    <main className="relative min-h-screen overflow-hidden bg-[#03060d] px-4 py-6 font-sans text-slate-100 md:px-8 md:py-10 xl:px-10">
+      <div className="pointer-events-none absolute inset-0">
+        <div className="absolute -left-24 top-[-10%] h-[430px] w-[430px] rounded-full bg-cyan-500/15 blur-[130px]" />
+        <div className="absolute -right-20 top-[14%] h-[380px] w-[380px] rounded-full bg-blue-500/15 blur-[120px]" />
+        <div className="absolute bottom-[-16%] left-[12%] h-[340px] w-[340px] rounded-full bg-sky-300/8 blur-[120px]" />
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(17,31,54,0.95)_0%,rgba(6,10,18,0.98)_58%,rgba(2,4,10,1)_100%)]" />
+        <div className="absolute inset-0 opacity-40 [background-image:linear-gradient(to_right,rgba(148,163,184,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(148,163,184,0.06)_1px,transparent_1px)] [background-size:56px_56px]" />
+      </div>
+
+      <div className="relative mx-auto grid w-full max-w-7xl gap-6 lg:grid-cols-12">
+        <motion.section
+          initial={{ opacity: 0, y: 14 }}
+          animate={{ opacity: 1, y: 0 }}
+          className={`${panelShell} lg:col-span-8 p-5 md:p-7`}
+        >
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(110deg,rgba(34,211,238,0.12)_0%,transparent_40%,rgba(59,130,246,0.12)_100%)]" />
+          <div className="pointer-events-none absolute -right-16 -top-14 h-52 w-52 rounded-full bg-cyan-400/10 blur-3xl" />
+          <div className="relative">
+            <div className="mb-5 flex flex-wrap items-start justify-between gap-3">
+              <div>
+                <p className="text-[10px] uppercase tracking-[0.34em] text-cyan-200/70">OpsNode Directive Array</p>
+                <h1 className="mt-2 text-3xl font-semibold tracking-tight text-white md:text-4xl">Command Cockpit</h1>
+                <p className="mt-2 text-sm text-slate-300/90">3D command cockpit · Bot manager + config</p>
               </div>
+              <span className="rounded-full border border-emerald-300/35 bg-emerald-400/10 px-3 py-1 text-[11px] font-medium uppercase tracking-[0.18em] text-emerald-200 shadow-[0_0_24px_-10px_rgba(52,211,153,0.9)]">
+                Live
+              </span>
             </div>
-          )}
+
+            <div className="mb-4 inline-flex rounded-xl border border-white/10 bg-white/[0.04] p-1 shadow-[inset_0_1px_0_rgba(255,255,255,0.08)]">
+              <button
+                onClick={() => setViewMode("commander")}
+                className={`${modeButton} ${
+                  viewMode === "commander"
+                    ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,1)]"
+                    : "text-slate-300 hover:bg-white/8 hover:text-white"
+                }`}
+              >
+                Commander
+              </button>
+              <button
+                onClick={() => setViewMode("detail")}
+                className={`${modeButton} ${
+                  viewMode === "detail"
+                    ? "bg-cyan-300 text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,1)]"
+                    : "text-slate-300 hover:bg-white/8 hover:text-white"
+                }`}
+              >
+                Detail
+              </button>
+            </div>
+
+            <div className="relative h-[380px] overflow-hidden rounded-2xl border border-cyan-100/15 bg-[radial-gradient(circle_at_50%_18%,rgba(14,116,144,0.45)_0%,rgba(2,6,23,0.76)_55%,rgba(2,6,23,0.98)_100%)] shadow-[inset_0_1px_0_rgba(255,255,255,0.1),0_28px_70px_-42px_rgba(56,189,248,0.85)]">
+              <div className="pointer-events-none absolute inset-0 [background-image:linear-gradient(to_right,rgba(125,211,252,0.08)_1px,transparent_1px),linear-gradient(to_bottom,rgba(125,211,252,0.06)_1px,transparent_1px)] [background-size:38px_38px]" />
+              <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,transparent_30%,rgba(2,6,23,0.72)_100%)]" />
+              <Canvas camera={{ position: [0, 0, 4.2], fov: 55 }}>
+                <NodeCore />
+              </Canvas>
+            </div>
+
+            {viewMode === "commander" ? (
+              <div className="mt-4 rounded-2xl border border-cyan-100/12 bg-white/[0.03] p-4 backdrop-blur-xl">
+                <div className="mb-3 flex items-center justify-between">
+                  <p className="text-[10px] uppercase tracking-[0.28em] text-cyan-200/70">Tactical Map</p>
+                  <p className="text-[10px] uppercase tracking-[0.2em] text-slate-400">Sector Sweep · 24 Nodes</p>
+                </div>
+                <div className="grid grid-cols-6 gap-2">
+                  {Array.from({ length: 24 }).map((_, i) => {
+                    const active = i % 5 === 0 || i === 7 || i === 18;
+                    return (
+                      <div
+                        key={i}
+                        className="relative h-8 overflow-hidden rounded-md border border-cyan-100/12 bg-gradient-to-br from-cyan-400/12 via-slate-950/65 to-blue-500/12"
+                      >
+                        <div
+                          className={`absolute inset-0 bg-[radial-gradient(circle_at_28%_38%,rgba(125,211,252,0.55)_0%,transparent_62%)] ${
+                            active ? "opacity-90" : "opacity-35"
+                          }`}
+                        />
+                        <div
+                          className={`absolute left-1.5 top-1.5 h-1.5 w-1.5 rounded-full ${
+                            active ? "bg-cyan-100 shadow-[0_0_12px_2px_rgba(103,232,249,0.7)]" : "bg-cyan-900/70"
+                          }`}
+                        />
+                        <div className="absolute bottom-0 h-px w-full bg-gradient-to-r from-transparent via-cyan-200/45 to-transparent" />
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              <div className="mt-4 grid gap-3 rounded-2xl border border-cyan-100/12 bg-white/[0.03] p-4 backdrop-blur-xl sm:grid-cols-2">
+                <div className="rounded-xl border border-cyan-100/10 bg-slate-950/50 p-4">
+                  <p className="text-[10px] uppercase tracking-[0.25em] text-cyan-200/70">Selected Unit</p>
+                  <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
+                  <p className="mt-1 text-xs text-slate-300">{selected?.provider} · {selected?.model}</p>
+                </div>
+                <div className="grid gap-3">
+                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-200">
+                    <CheckCircle2 size={14} className="text-emerald-300" />
+                    Control plane integrity: {health}%
+                  </div>
+                  <div className="flex items-center gap-2 rounded-xl border border-cyan-100/10 bg-slate-950/50 px-3 py-2.5 text-xs text-slate-200">
+                    <Clock3 size={14} className="text-cyan-200" />
+                    Last event: {selected?.lastRun || "-"}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </motion.section>
 
         <section className="grid gap-4 lg:col-span-4">
@@ -254,73 +348,178 @@ export default function Page() {
           <Card title="Gateway" value="Bound" sub="/api/gateway-action wired" />
         </section>
 
-        <section className="lg:col-span-8 rounded-3xl border border-cyan-300/20 bg-slate-950/45 p-5">
-          <div className="mb-4 flex items-center justify-between">
-            <h2 className="text-lg font-semibold">Bot Manager</h2>
-            <div className="flex gap-2">
-              <button onClick={addBot} className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-3 py-2 text-sm font-semibold text-slate-950 hover:bg-cyan-400"><Plus size={14} /> Add Bot</button>
-              <button onClick={rollback} className="inline-flex items-center gap-2 rounded-xl border border-cyan-300/30 px-3 py-2 text-sm hover:bg-cyan-500/10"><RotateCcw size={14} /> Rollback</button>
+        <section className={`${panelShell} lg:col-span-8 p-5 md:p-6`}>
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(125deg,rgba(34,211,238,0.08)_0%,transparent_45%,rgba(96,165,250,0.08)_100%)]" />
+          <div className="relative">
+            <div className="mb-5 flex flex-wrap items-center justify-between gap-3">
+              <h2 className="text-2xl font-semibold tracking-tight text-white">Bot Manager</h2>
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={addBot}
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/40 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.95)] transition hover:brightness-110"
+                >
+                  <Plus size={14} /> Add Bot
+                </button>
+                <button
+                  onClick={rollback}
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-100/20 bg-slate-900/55 px-3.5 py-2 text-sm text-slate-200 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+                >
+                  <RotateCcw size={14} /> Rollback
+                </button>
+              </div>
             </div>
-          </div>
 
-          <div className="grid gap-3 md:grid-cols-2">
-            {bots.map((b) => (
-              <div key={b.id} className={`rounded-2xl border p-4 ${selectedId === b.id ? "border-cyan-300/60 bg-cyan-500/10" : "border-white/10 bg-slate-900/60"}`}>
-                <div className="mb-2 flex items-center justify-between">
-                  <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                    <p className="font-semibold">{b.name}</p>
-                    <p className="text-xs text-slate-300">{b.provider} · {b.model}</p>
-                  </button>
-                  <div className="flex items-center gap-2">
-                    <span className={`rounded-full px-2 py-1 text-[10px] uppercase ${b.priority === "high" ? "bg-rose-500/20 text-rose-300" : b.priority === "med" ? "bg-amber-500/20 text-amber-300" : "bg-emerald-500/20 text-emerald-300"}`}>{b.priority}</span>
-                    <span className={`rounded-full px-2 py-1 text-xs ${b.status === "running" ? "bg-emerald-500/20 text-emerald-300" : b.status === "paused" ? "bg-amber-500/20 text-amber-300" : "bg-slate-500/30 text-slate-200"}`}>{b.status}</span>
+            <div className="grid gap-3 md:grid-cols-2">
+              {bots.map((b) => (
+                <div
+                  key={b.id}
+                  className={`rounded-2xl border p-4 backdrop-blur-xl transition ${
+                    selectedId === b.id
+                      ? "border-cyan-200/45 bg-gradient-to-br from-cyan-400/16 via-slate-900/70 to-blue-500/14 shadow-[0_0_34px_-18px_rgba(34,211,238,0.9)]"
+                      : "border-white/10 bg-slate-950/55 hover:border-cyan-100/30 hover:bg-slate-900/72"
+                  }`}
+                >
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <button className="text-left" onClick={() => setSelectedId(b.id)}>
+                      <p className="text-base font-semibold text-white">{b.name}</p>
+                      <p className="mt-0.5 text-xs text-slate-300">{b.provider} · {b.model}</p>
+                    </button>
+                    <div className="flex items-center gap-2">
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                          b.priority === "high"
+                            ? "border border-rose-300/20 bg-rose-500/20 text-rose-200"
+                            : b.priority === "med"
+                              ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
+                              : "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                        }`}
+                      >
+                        {b.priority}
+                      </span>
+                      <span
+                        className={`rounded-full px-2 py-1 text-[10px] uppercase tracking-[0.16em] ${
+                          b.status === "running"
+                            ? "border border-emerald-300/20 bg-emerald-500/20 text-emerald-200"
+                            : b.status === "paused"
+                              ? "border border-amber-300/20 bg-amber-500/20 text-amber-200"
+                              : "border border-slate-300/20 bg-slate-500/30 text-slate-200"
+                        }`}
+                      >
+                        {b.status}
+                      </span>
+                    </div>
+                  </div>
+
+                  <div className="mt-4 flex flex-wrap gap-2">
+                    <button
+                      onClick={() => {
+                        setSelectedId(b.id);
+                        setShowConfig(true);
+                      }}
+                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                    >
+                      <Settings size={13} /> Config
+                    </button>
+                    <button
+                      onClick={() =>
+                        setBots((s) =>
+                          s.map((x) => (x.id === b.id ? { ...x, status: x.status === "paused" ? "running" : "paused" } : x)),
+                        )
+                      }
+                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                    >
+                      {b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}
+                      {b.status === "paused" ? "Resume" : "Pause"}
+                    </button>
+                    <button
+                      onClick={() => setBots((s) => s.map((x) => (x.id === b.id ? { ...x, enabled: !x.enabled } : x)))}
+                      className="inline-flex items-center gap-1 rounded-lg border border-cyan-100/22 bg-slate-900/45 px-2.5 py-1.5 text-xs text-slate-200 transition hover:border-cyan-200/45 hover:bg-cyan-300/10"
+                    >
+                      <Power size={13} /> {b.enabled ? "Disable" : "Enable"}
+                    </button>
+                    <button
+                      onClick={() => deleteBot(b.id)}
+                      className="inline-flex items-center gap-1 rounded-lg border border-rose-300/22 bg-rose-500/5 px-2.5 py-1.5 text-xs text-rose-200 transition hover:bg-rose-500/14"
+                    >
+                      <Trash2 size={13} /> Delete
+                    </button>
                   </div>
                 </div>
-                <div className="mt-3 flex gap-2">
-                  <button onClick={() => { setSelectedId(b.id); setShowConfig(true); }} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-xs hover:bg-white/10"><Settings size={13} /> Config</button>
-                  <button onClick={() => setBots((s) => s.map((x) => x.id === b.id ? { ...x, status: x.status === "paused" ? "running" : "paused" } : x))} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-xs hover:bg-white/10">{b.status === "paused" ? <Play size={13} /> : <Pause size={13} />}{b.status === "paused" ? "Resume" : "Pause"}</button>
-                  <button onClick={() => setBots((s) => s.map((x) => x.id === b.id ? { ...x, enabled: !x.enabled } : x))} className="inline-flex items-center gap-1 rounded-lg border border-white/15 px-2 py-1 text-xs hover:bg-white/10"><Power size={13} /> {b.enabled ? "Disable" : "Enable"}</button>
-                  <button onClick={() => deleteBot(b.id)} className="inline-flex items-center gap-1 rounded-lg border border-rose-300/20 px-2 py-1 text-xs text-rose-200 hover:bg-rose-500/10"><Trash2 size={13} /> Delete</button>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
         </section>
 
-        <section className="lg:col-span-4 rounded-3xl border border-cyan-300/20 bg-slate-950/45 p-5">
-          <h2 className="mb-4 text-lg font-semibold">Quick Actions</h2>
-          <div className="space-y-3">
-            <button onClick={() => sendGatewayAction("summon")} className="flex w-full items-center justify-center gap-2 rounded-xl bg-cyan-500 px-4 py-2.5 font-medium text-slate-950 hover:bg-cyan-400"><Activity size={16} /> Summon All</button>
-            <button onClick={() => sendGatewayAction("reset")} className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-400/40 px-4 py-2.5 text-cyan-200 hover:bg-cyan-500/10"><Brain size={16} /> Reset Context</button>
-            <button onClick={() => setShowConfig(true)} className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/20 px-4 py-2.5 hover:bg-white/10"><Settings size={16} /> Open Config Drawer</button>
+        <section className={`${panelShell} lg:col-span-4 p-5 md:p-6`}>
+          <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(145deg,rgba(34,211,238,0.08)_0%,transparent_35%,rgba(59,130,246,0.1)_100%)]" />
+          <div className="relative">
+            <h2 className="text-2xl font-semibold tracking-tight text-white">Quick Actions</h2>
+            <p className="mt-1 text-xs uppercase tracking-[0.2em] text-slate-400">Gateway Dispatch</p>
+            <div className="mt-5 space-y-3">
+              <button
+                onClick={() => sendGatewayAction("summon")}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2.5 font-medium text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)] transition hover:brightness-110"
+              >
+                <Activity size={16} /> Summon All
+              </button>
+              <button
+                onClick={() => sendGatewayAction("reset")}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-cyan-100/22 bg-slate-900/60 px-4 py-2.5 text-cyan-100 transition hover:border-cyan-200/35 hover:bg-cyan-300/10"
+              >
+                <Brain size={16} /> Reset Context
+              </button>
+              <button
+                onClick={() => setShowConfig(true)}
+                className="flex w-full items-center justify-center gap-2 rounded-xl border border-white/18 bg-slate-900/55 px-4 py-2.5 text-slate-100 transition hover:border-white/35 hover:bg-white/10"
+              >
+                <Settings size={16} /> Open Config Drawer
+              </button>
+            </div>
+            <p className="mt-4 rounded-lg border border-cyan-100/12 bg-slate-900/55 px-3 py-2 text-xs text-slate-300">{gatewayMsg || "Gateway ready"}</p>
           </div>
-          <p className="mt-4 text-xs text-slate-300">{gatewayMsg || "Gateway ready"}</p>
         </section>
       </div>
 
       {showConfig && selected && (
-        <div className="fixed inset-0 z-50 flex items-end justify-center bg-black/60 p-4 md:items-center">
-          <div className="w-full max-w-2xl rounded-2xl border border-cyan-300/20 bg-slate-950 p-5">
-            <div className="mb-4 flex items-center justify-between">
-              <h3 className="text-lg font-semibold">Config · {selected.name}</h3>
-              <button className="text-sm text-slate-300" onClick={() => setShowConfig(false)}>Close</button>
-            </div>
-
-            <div className="grid gap-3 md:grid-cols-2">
-              <Field label="Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
-              <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
-              <Field label="Provider" value={selected.provider} onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })} />
-              <Field label="Thinking" value={selected.thinking} onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })} />
-              <Field label="Priority" value={selected.priority} onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })} />
-              <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
-              <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
-              <div className="md:col-span-2">
-                <Field label="Allowed Tools" value={selected.allowedTools} onChange={(v) => updateBot({ allowedTools: v })} />
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-slate-950/75 p-4 backdrop-blur-sm md:items-center">
+          <div className="relative w-full max-w-2xl overflow-hidden rounded-3xl border border-cyan-100/20 bg-slate-950/85 p-5 shadow-[0_26px_80px_-35px_rgba(15,118,110,0.7)] backdrop-blur-2xl md:p-6">
+            <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(34,211,238,0.09)_0%,transparent_40%,rgba(59,130,246,0.1)_100%)]" />
+            <div className="relative">
+              <div className="mb-5 flex items-center justify-between">
+                <h3 className="text-xl font-semibold tracking-tight text-white">Config · {selected.name}</h3>
+                <button
+                  className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/10 hover:text-white"
+                  onClick={() => setShowConfig(false)}
+                >
+                  Close
+                </button>
               </div>
-            </div>
 
-            <div className="mt-4 flex justify-end gap-2">
-              <button onClick={() => { saveSnapshot(bots); persist(bots); setShowConfig(false); }} className="inline-flex items-center gap-2 rounded-xl bg-cyan-500 px-4 py-2 font-semibold text-slate-950 hover:bg-cyan-400"><Save size={14} /> Save Config</button>
+              <div className="grid gap-3 md:grid-cols-2">
+                <Field label="Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
+                <Field label="Model" value={selected.model} onChange={(v) => updateBot({ model: v })} />
+                <Field label="Provider" value={selected.provider} onChange={(v) => updateBot({ provider: v as BotConfig["provider"] })} />
+                <Field label="Thinking" value={selected.thinking} onChange={(v) => updateBot({ thinking: v as BotConfig["thinking"] })} />
+                <Field label="Priority" value={selected.priority} onChange={(v) => updateBot({ priority: v as BotConfig["priority"] })} />
+                <Field label="Schedule" value={selected.schedule} onChange={(v) => updateBot({ schedule: v })} />
+                <Field label="Channel" value={selected.channel} onChange={(v) => updateBot({ channel: v })} />
+                <div className="md:col-span-2">
+                  <Field label="Allowed Tools" value={selected.allowedTools} onChange={(v) => updateBot({ allowedTools: v })} />
+                </div>
+              </div>
+
+              <div className="mt-5 flex justify-end gap-2">
+                <button
+                  onClick={() => {
+                    saveSnapshot(bots);
+                    persist(bots);
+                    setShowConfig(false);
+                  }}
+                  className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-4 py-2 font-semibold text-slate-950 shadow-[0_0_24px_-12px_rgba(103,232,249,0.9)] transition hover:brightness-110"
+                >
+                  <Save size={14} /> Save Config
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -331,9 +530,10 @@ export default function Page() {
 
 function Card({ title, value, sub }: { title: string; value: string; sub: string }) {
   return (
-    <div className="rounded-2xl border border-cyan-300/20 bg-slate-900/60 p-4 backdrop-blur-xl">
-      <p className="text-xs text-cyan-200/80">{title}</p>
-      <p className="mt-1 text-2xl font-semibold text-white">{value}</p>
+    <div className="relative overflow-hidden rounded-2xl border border-cyan-100/12 bg-white/[0.04] p-4 backdrop-blur-2xl shadow-[inset_0_1px_0_rgba(255,255,255,0.08),0_18px_55px_-36px_rgba(34,211,238,0.8)]">
+      <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-cyan-200/55 to-transparent" />
+      <p className="text-[10px] uppercase tracking-[0.24em] text-cyan-200/75">{title}</p>
+      <p className="mt-2 text-3xl font-semibold tracking-tight text-white">{value}</p>
       <p className="mt-1 text-xs text-slate-300">{sub}</p>
     </div>
   );
@@ -341,9 +541,13 @@ function Card({ title, value, sub }: { title: string; value: string; sub: string
 
 function Field({ label, value, onChange }: { label: string; value: string; onChange: (v: string) => void }) {
   return (
-    <label className="block text-xs text-slate-300">
+    <label className="block text-[11px] font-medium uppercase tracking-[0.2em] text-slate-300">
       {label}
-      <input value={value} onChange={(e) => onChange(e.target.value)} className="mt-1 w-full rounded-lg border border-white/10 bg-slate-900 px-3 py-2 text-sm text-white outline-none focus:border-cyan-300/50" />
+      <input
+        value={value}
+        onChange={(e) => onChange(e.target.value)}
+        className="mt-1.5 w-full rounded-xl border border-white/12 bg-slate-900/70 px-3.5 py-2.5 text-sm normal-case tracking-normal text-white shadow-[inset_0_1px_0_rgba(255,255,255,0.05)] outline-none transition focus:border-cyan-300/55 focus:bg-slate-900 focus:shadow-[0_0_0_3px_rgba(34,211,238,0.12)]"
+      />
     </label>
   );
 }
