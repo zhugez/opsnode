@@ -29,6 +29,7 @@ type BotTier = "I" | "II" | "III";
 type BotConfig = {
   id: string;
   name: string;
+  callsign: string;
   status: "idle" | "running" | "paused";
   priority: "low" | "med" | "high";
   enabled: boolean;
@@ -51,6 +52,7 @@ type ConfigVersion = {
 
 type RecruitDraft = {
   name: string;
+  callsign: string;
   archetype: BotArchetype;
   tier: BotTier;
   provider: BotConfig["provider"];
@@ -103,10 +105,18 @@ const ARCHETYPES: Record<
   },
 };
 
+const CALLSIGN_POOL: Record<BotArchetype, string[]> = {
+  sentinel: ["AEGIS", "BASTION", "IRONWALL", "VANGUARD", "LOCKDOWN"],
+  sniper: ["LONGSHOT", "DEADEYE", "PINPOINT", "VANTAGE", "FALCON"],
+  analyst: ["ORBIT", "SPECTRA", "NEXUS", "CIRCUIT", "ECHO"],
+  medic: ["LIFELINE", "AURORA", "PATCH", "REMEDY", "REVIVE"],
+};
+
 const defaults: BotConfig[] = [
   {
     id: "yasna-main",
     name: "Yasna",
+    callsign: "ORBIT",
     status: "idle",
     priority: "high",
     enabled: true,
@@ -124,6 +134,7 @@ const defaults: BotConfig[] = [
   {
     id: "zhu-ops",
     name: "Zhu",
+    callsign: "AEGIS",
     status: "idle",
     priority: "med",
     enabled: true,
@@ -142,6 +153,7 @@ const defaults: BotConfig[] = [
 
 const initialRecruitDraft: RecruitDraft = {
   name: "",
+  callsign: "",
   archetype: "sentinel",
   tier: "I",
   provider: "openai-codex",
@@ -156,6 +168,26 @@ const initialRecruitDraft: RecruitDraft = {
 function resolveAvatar(avatar: string | undefined, archetype: BotArchetype) {
   if (!avatar || !avatar.startsWith("/")) return ARCHETYPES[archetype].avatar;
   return avatar;
+}
+
+function normalizeCallsign(v: string | undefined) {
+  return (v || "")
+    .trim()
+    .toUpperCase()
+    .replace(/[^A-Z0-9\s-]/g, "")
+    .replace(/\s+/g, "-")
+    .slice(0, 18);
+}
+
+function nextAvailableCallsign(archetype: BotArchetype, existing: BotConfig[]) {
+  const used = new Set(existing.map((b) => normalizeCallsign(b.callsign)).filter(Boolean));
+  for (const candidate of CALLSIGN_POOL[archetype]) {
+    if (!used.has(candidate)) return candidate;
+  }
+  const stem = ARCHETYPES[archetype].label.toUpperCase();
+  let n = 1;
+  while (used.has(`${stem}-${n}`)) n += 1;
+  return `${stem}-${n}`;
 }
 
 type Vec3 = [number, number, number];
@@ -431,18 +463,29 @@ function loadBots(): BotConfig[] {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     const parsed = raw ? (JSON.parse(raw) as Partial<BotConfig>[]) : defaults;
-    return parsed.map((b, i) => {
+    const hydrated: BotConfig[] = [];
+
+    parsed.forEach((b, i) => {
       const fallback = defaults[Math.min(i, defaults.length - 1)] || defaults[0];
       const archetype = (b.archetype as BotArchetype) || fallback.archetype || "sentinel";
-      return {
+      const rawCallsign = normalizeCallsign((b as Partial<BotConfig>).callsign);
+      const callsign =
+        rawCallsign && !hydrated.some((x) => x.callsign === rawCallsign)
+          ? rawCallsign
+          : nextAvailableCallsign(archetype, hydrated);
+
+      hydrated.push({
         ...fallback,
         ...b,
+        callsign,
         priority: (b.priority as BotConfig["priority"]) || fallback.priority || "med",
         archetype,
         tier: (b.tier as BotTier) || fallback.tier || "I",
         avatar: resolveAvatar(b.avatar, archetype),
-      };
-    }) as BotConfig[];
+      } as BotConfig);
+    });
+
+    return hydrated;
   } catch {
     return defaults;
   }
@@ -501,11 +544,13 @@ export default function Page() {
   const recruitBot = () => {
     const id = `bot-${Date.now()}`;
     const archetype = recruitDraft.archetype;
+    const callsign = normalizeCallsign(recruitDraft.callsign) || nextAvailableCallsign(archetype, bots);
     const next: BotConfig[] = [
       ...bots,
       {
         id,
-        name: recruitDraft.name.trim() || `${ARCHETYPES[archetype].label} ${bots.length + 1}`,
+        name: recruitDraft.name.trim() || `${ARCHETYPES[archetype].label} Operator ${bots.length + 1}`,
+        callsign,
         status: "idle",
         priority: recruitDraft.priority,
         enabled: true,
@@ -527,7 +572,7 @@ export default function Page() {
     setSelectedId(id);
     setShowRecruitMenu(false);
     setRecruitDraft(initialRecruitDraft);
-    setGatewayMsg(`Recruited ${next[next.length - 1].name} as ${ARCHETYPES[archetype].label}`);
+    setGatewayMsg(`Recruited [${callsign}] ${next[next.length - 1].name} as ${ARCHETYPES[archetype].label}`);
   };
 
   const updateBot = (patch: Partial<BotConfig>) => {
@@ -537,6 +582,12 @@ export default function Page() {
       const merged = { ...b, ...patch };
       if (patch.archetype) {
         merged.avatar = ARCHETYPES[patch.archetype].avatar;
+      }
+      if (typeof patch.callsign === "string") {
+        const normalized = normalizeCallsign(patch.callsign);
+        const taken = bots.some((x) => x.id !== b.id && x.callsign === normalized);
+        merged.callsign =
+          normalized && !taken ? normalized : nextAvailableCallsign(merged.archetype, bots.filter((x) => x.id !== b.id));
       }
       return merged;
     });
@@ -737,8 +788,10 @@ export default function Page() {
                           </div>
                           <div>
                             <p className="text-[10px] uppercase tracking-[0.16em] text-slate-400">Slot {slotLabel}</p>
-                            <p className="text-sm font-semibold text-white">{bot?.name || "Unassigned"}</p>
-                            <p className="text-[11px] text-slate-300">{bot ? `${a?.label} · Tier ${bot.tier}` : "Recruit or select a unit"}</p>
+                            <p className="text-sm font-semibold text-white">{bot ? `[${bot.callsign}]` : "Unassigned"}</p>
+                            <p className="text-[11px] text-slate-300">
+                              {bot ? `${bot.name} · ${a?.label} · Tier ${bot.tier}` : "Recruit or select a unit"}
+                            </p>
                           </div>
                         </div>
                       </div>
@@ -767,7 +820,7 @@ export default function Page() {
                       </p>
                       {cell.linked && (
                         <p className="absolute bottom-1 left-1.5 truncate text-[9px] font-semibold tracking-[0.1em] text-cyan-50">
-                          {cell.linked.name}
+                          [{cell.linked.callsign}]
                         </p>
                       )}
                     </motion.div>
@@ -783,10 +836,8 @@ export default function Page() {
                       <UnitPortrait src={selected.avatar} alt={selected.name} className="h-full w-full object-cover" />
                     </div>
                   )}
-                  <p className="mt-2 text-xl font-semibold text-white">{selected?.name || "-"}</p>
-                  <p className="mt-1 text-xs text-slate-300">
-                    {selected ? `${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}
-                  </p>
+                  <p className="mt-2 text-xl font-semibold text-white">{selected ? `[${selected.callsign}]` : "-"}</p>
+                  <p className="mt-1 text-xs text-slate-300">{selected ? `${selected.name} · ${ARCHETYPES[selected.archetype].label} · Tier ${selected.tier}` : "-"}</p>
                   <p className="mt-1 text-xs text-slate-400">
                     {selected?.provider} · {selected?.model}
                   </p>
@@ -820,7 +871,13 @@ export default function Page() {
               <h2 className="text-2xl font-semibold tracking-tight text-white">Roster Bay</h2>
               <div className="flex flex-wrap gap-2">
                 <button
-                  onClick={() => setShowRecruitMenu(true)}
+                  onClick={() => {
+                    setRecruitDraft((prev) => ({
+                      ...prev,
+                      callsign: prev.callsign || nextAvailableCallsign(prev.archetype, bots),
+                    }));
+                    setShowRecruitMenu(true);
+                  }}
                   className="inline-flex items-center gap-2 rounded-xl border border-cyan-200/35 bg-gradient-to-r from-cyan-300 to-sky-300 px-3.5 py-2 text-sm font-semibold text-slate-950 shadow-[0_0_20px_-12px_rgba(103,232,249,0.85)] transition hover:brightness-110"
                 >
                   <Swords size={14} /> Recruit Menu
@@ -896,8 +953,8 @@ export default function Page() {
                           <UnitPortrait src={b.avatar} alt={b.name} />
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
-                          <p className="text-base font-semibold text-white">{b.name}</p>
-                          <p className="mt-0.5 text-xs text-slate-300">{a.label}</p>
+                          <p className="text-base font-semibold text-white">[{b.callsign}]</p>
+                          <p className="mt-0.5 text-xs text-slate-300">{b.name} · {a.label}</p>
                         </button>
                       </div>
                       <div className="flex items-center gap-2">
@@ -1035,7 +1092,13 @@ export default function Page() {
                   return (
                     <button
                       key={key}
-                      onClick={() => setRecruitDraft((prev) => ({ ...prev, archetype: key }))}
+                      onClick={() =>
+                        setRecruitDraft((prev) => ({
+                          ...prev,
+                          archetype: key,
+                          callsign: prev.callsign || nextAvailableCallsign(key, bots),
+                        }))
+                      }
                       className={`relative overflow-hidden rounded-2xl border p-4 text-left transition ${
                         active
                           ? "border-cyan-300/45 bg-slate-900/80 shadow-[0_0_20px_-14px_rgba(34,211,238,0.9)]"
@@ -1056,7 +1119,12 @@ export default function Page() {
               </div>
 
               <div className="mt-4 grid gap-3 md:grid-cols-2">
-                <Field label="Callsign" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
+                <Field
+                  label="Callsign"
+                  value={recruitDraft.callsign}
+                  onChange={(v) => setRecruitDraft((p) => ({ ...p, callsign: normalizeCallsign(v) }))}
+                />
+                <Field label="Operator Name" value={recruitDraft.name} onChange={(v) => setRecruitDraft((p) => ({ ...p, name: v }))} />
                 <SelectField
                   label="Tier"
                   value={recruitDraft.tier}
@@ -1120,7 +1188,7 @@ export default function Page() {
             <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(120deg,rgba(56,189,248,0.07)_0%,transparent_42%,rgba(99,102,241,0.08)_100%)]" />
             <div className="relative">
               <div className="mb-5 flex items-center justify-between">
-                <h3 className="text-xl font-semibold tracking-tight text-white">Loadout · {selected.name}</h3>
+                <h3 className="text-xl font-semibold tracking-tight text-white">Loadout · [{selected.callsign}]</h3>
                 <button
                   className="rounded-lg border border-white/15 px-3 py-1.5 text-xs uppercase tracking-[0.16em] text-slate-300 transition hover:bg-white/8 hover:text-white"
                   onClick={() => setShowConfig(false)}
@@ -1130,7 +1198,8 @@ export default function Page() {
               </div>
 
               <div className="grid gap-3 md:grid-cols-2">
-                <Field label="Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
+                <Field label="Callsign" value={selected.callsign} onChange={(v) => updateBot({ callsign: v })} />
+                <Field label="Operator Name" value={selected.name} onChange={(v) => updateBot({ name: v })} />
                 <SelectField
                   label="Archetype"
                   value={selected.archetype}
