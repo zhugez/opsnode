@@ -549,9 +549,11 @@ useGLTF.preload("/assets/office/paneling.glb");
 useGLTF.preload("/assets/office/wall_window.glb");
 useGLTF.preload("/assets/office/computer_screen.glb");
 useGLTF.preload("/assets/office/lamp_ceiling.glb");
-Object.values(ARCHETYPES).forEach((archetype) => {
-  useTexture.preload(archetype.worldTexture);
-});
+
+// Preload character icons
+for (let i = 0; i < 45; i++) {
+  useTexture.preload(`/assets/characters/icons/char-${i}.png`);
+}
 
 function UnitActor({
   bot,
@@ -582,20 +584,8 @@ function UnitActor({
   const style = ARCHETYPES[bot.archetype];
   const statusStyle = STATUS_STYLE[bot.status];
   
-  // Unique character mapping via texture offset
-  const portraitTexture = useTexture(style.worldTexture);
-  const charIdx = bot.characterIndex ?? 0;
-  const col = charIdx % SPRITE_GRID.cols;
-  const row = Math.floor(charIdx / SPRITE_GRID.cols);
+  const portraitTexture = useTexture(bot.characterIndex !== undefined ? `/assets/characters/icons/char-${bot.characterIndex}.png` : style.worldTexture);
   
-  const spriteTexture = useMemo(() => {
-    const tex = portraitTexture.clone();
-    tex.repeat.set(1 / SPRITE_GRID.cols, 1 / SPRITE_GRID.rows);
-    tex.offset.set(col / SPRITE_GRID.cols, 1 - (row + 1) / SPRITE_GRID.rows);
-    tex.needsUpdate = true;
-    return tex;
-  }, [portraitTexture, col, row]);
-
   useEffect(() => {
     if (shouldSpawn) spawnProgressRef.current = 0;
   }, [shouldSpawn]);
@@ -681,7 +671,7 @@ function UnitActor({
       </mesh>
 
       <sprite position={[0, 0.18, 0.02]} scale={style.worldScale}>
-        <spriteMaterial ref={portraitMatRef} map={spriteTexture} transparent depthWrite={false} />
+        <spriteMaterial ref={portraitMatRef} map={portraitTexture} transparent depthWrite={false} />
       </sprite>
 
       <mesh position={[0, 0.085, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -1849,25 +1839,17 @@ function UnitPortrait({
   const charIdx = bot?.characterIndex;
   
   if (typeof charIdx === 'number') {
-    const col = charIdx % SPRITE_GRID.cols;
-    const row = Math.floor(charIdx / SPRITE_GRID.cols);
-    const xPercent = (col / (SPRITE_GRID.cols - 1)) * 100;
-    const yPercent = (row / (SPRITE_GRID.rows - 1)) * 100;
-    
     return (
-      <div className={`${className} overflow-hidden bg-black/20 relative`}>
+      <div className={`${className} overflow-hidden bg-black/20 relative flex items-center justify-center`}>
         <img 
-          src={SPRITE_SHEET} 
+          src={`/assets/characters/icons/char-${charIdx}.png`}
           alt={alt} 
-          className="absolute max-w-none"
-          style={{
-            width: `${SPRITE_GRID.cols * 100}%`,
-            height: `${SPRITE_GRID.rows * 100}%`,
-            left: `-${col * 100}%`,
-            top: `-${row * 100}%`,
-            imageRendering: 'pixelated'
-          }}
+          className="w-full h-full object-contain"
+          image-rendering="pixelated"
           draggable={false} 
+          onError={(e) => {
+            (e.target as HTMLImageElement).src = src;
+          }}
         />
       </div>
     );
