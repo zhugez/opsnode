@@ -48,6 +48,7 @@ type BotConfig = {
   deskSlot?: number;
   squadId?: string;
   projectTag?: string;
+  characterIndex?: number;
 };
 
 type ConfigVersion = {
@@ -74,6 +75,9 @@ type RecruitDraft = {
 const STORAGE_KEY = "opsnode.bots.v1";
 const VERSIONS_KEY = "opsnode.bots.versions.v1";
 
+const SPRITE_SHEET = "/assets/characters/kenney-mini-characters-preview.png";
+const SPRITE_GRID = { cols: 9, rows: 5 }; // Based on 918x515
+
 const ARCHETYPES: Record<
   BotArchetype,
   {
@@ -94,8 +98,8 @@ const ARCHETYPES: Record<
     label: "Sentinel",
     role: "Frontline defense",
     avatar: "/assets/characters/sentinel-card.png",
-    worldTexture: "/assets/characters/sentinel-card.png",
-    worldScale: [0.34, 0.38, 1],
+    worldTexture: SPRITE_SHEET,
+    worldScale: [0.36, 0.36, 1],
     aura: "from-blue-300/18 via-sky-300/8 to-transparent",
     chip: "border-blue-200/28 bg-blue-400/12 text-blue-100",
     tone: "text-blue-200",
@@ -107,8 +111,8 @@ const ARCHETYPES: Record<
     label: "Sniper",
     role: "Precision strike",
     avatar: "/assets/characters/sniper-card.png",
-    worldTexture: "/assets/characters/sniper-card.png",
-    worldScale: [0.34, 0.38, 1],
+    worldTexture: SPRITE_SHEET,
+    worldScale: [0.36, 0.36, 1],
     aura: "from-violet-300/18 via-indigo-300/8 to-transparent",
     chip: "border-violet-200/28 bg-violet-400/12 text-violet-100",
     tone: "text-violet-200",
@@ -120,8 +124,8 @@ const ARCHETYPES: Record<
     label: "Analyst",
     role: "Intel & planning",
     avatar: "/assets/characters/analyst-card.png",
-    worldTexture: "/assets/characters/analyst-card.png",
-    worldScale: [0.34, 0.38, 1],
+    worldTexture: SPRITE_SHEET,
+    worldScale: [0.36, 0.36, 1],
     aura: "from-cyan-200/16 via-slate-300/8 to-transparent",
     chip: "border-cyan-100/28 bg-cyan-300/10 text-cyan-50",
     tone: "text-cyan-100",
@@ -133,8 +137,8 @@ const ARCHETYPES: Record<
     label: "Medic",
     role: "Recovery support",
     avatar: "/assets/characters/medic-card.png",
-    worldTexture: "/assets/characters/medic-card.png",
-    worldScale: [0.34, 0.38, 1],
+    worldTexture: SPRITE_SHEET,
+    worldScale: [0.36, 0.36, 1],
     aura: "from-teal-300/18 via-emerald-300/8 to-transparent",
     chip: "border-teal-200/28 bg-teal-400/12 text-teal-100",
     tone: "text-teal-200",
@@ -172,6 +176,7 @@ const defaults: BotConfig[] = [
     deskSlot: 0,
     squadId: "alpha",
     projectTag: "NEXUS",
+    characterIndex: 12,
   },
   {
     id: "zhu-ops",
@@ -193,6 +198,7 @@ const defaults: BotConfig[] = [
     deskSlot: 1,
     squadId: "alpha",
     projectTag: "NEXUS",
+    characterIndex: 4,
   },
 ];
 
@@ -410,48 +416,64 @@ function SceneEnvironment({
 
   return (
     <>
-      <color attach="background" args={["#05070a"]} />
-      <ambientLight intensity={0.25} color="#d1eaff" />
-      <directionalLight position={[5, 8, 5]} intensity={1.2} color="#ffffff" />
-      <directionalLight position={[-5, 4, -2]} intensity={0.4} color="#7dd3fc" />
-      <pointLight position={[0, 4, 0]} intensity={0.8} color="#0ea5e9" />
+      <color attach="background" args={["#010204"]} />
+      <ambientLight intensity={0.15} color="#d1eaff" />
+      <directionalLight position={[5, 8, 5]} intensity={1.4} color="#ffffff" />
+      <directionalLight position={[-5, 4, -2]} intensity={0.6} color="#7dd3fc" />
+      <pointLight position={[0, 4, 0]} intensity={1.2} color="#0ea5e9" />
+      <spotLight position={[0, 6, 0]} angle={0.4} penumbra={1} intensity={2} color="#22d3ee" castShadow />
 
-      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
-        <planeGeometry args={[16, 12]} />
-        <meshStandardMaterial color="#0a0c10" roughness={0.8} metalness={0.2} />
+      {/* Main Floor Plate */}
+      <mesh position={[0, -0.585, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
+        <planeGeometry args={[20, 16]} />
+        <meshStandardMaterial color="#020408" roughness={1} metalness={0} />
       </mesh>
 
-      <mesh position={[0, -0.575, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+      {/* Premium Glass Floor */}
+      <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[12, 10]} />
-        <meshStandardMaterial color="#0f172a" roughness={0.1} metalness={0.8} />
+        <meshStandardMaterial color="#0a0f1d" roughness={0.05} metalness={0.9} envMapIntensity={1} />
       </mesh>
+
+      {/* Grid Pattern */}
+      <gridHelper args={[12, 12, "#1e293b", "#0f172a"]} position={[0, -0.575, 0]} />
 
       {SQUADS.map((baseSquad, lane) => {
         const squad = squadById.get(baseSquad.id) ?? baseSquad;
         const z = laneCenterZ(lane);
         return (
           <group key={squad.id}>
+            {/* Squad Boundary Floor Plate */}
             <mesh position={[0, -0.57, z]} rotation={[-Math.PI / 2, 0, 0]}>
-              <planeGeometry args={[5, 1.8]} />
-              <meshStandardMaterial color={squad.color} transparent opacity={0.15} roughness={0.1} metalness={0.5} />
+              <planeGeometry args={[5.2, 2]} />
+              <meshStandardMaterial color={squad.color} transparent opacity={0.12} roughness={0.1} metalness={0.8} />
             </mesh>
-            <mesh position={[0, -0.568, z]} rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[2.5, 2.55, 64]} />
-              <meshBasicMaterial color={squad.color} transparent opacity={0.3} />
+            
+            {/* Holographic Border */}
+            <mesh position={[0, -0.569, z]} rotation={[-Math.PI / 2, 0, 0]}>
+              <ringGeometry args={[2.58, 2.62, 64]} />
+              <meshBasicMaterial color={squad.color} transparent opacity={0.4} />
             </mesh>
-            <mesh position={[-2.8, -0.565, z]} rotation={[-Math.PI / 2, 0, 0]}>
-              <ringGeometry args={[0.15, 0.2, 32]} />
-              <meshBasicMaterial color={squad.color} transparent opacity={0.6} />
-            </mesh>
+
+            {/* Glowing Corner Accents */}
+            {[[-2.6, -1], [-2.6, 1], [2.6, -1], [2.6, 1]].map(([x, dz], i) => (
+              <mesh key={i} position={[x, -0.565, z + dz]} rotation={[-Math.PI / 2, 0, 0]}>
+                <planeGeometry args={[0.2, 0.02]} />
+                <meshBasicMaterial color={squad.color} transparent opacity={0.8} />
+              </mesh>
+            ))}
+
             <Text
-              position={[-3.2, 0.1, z]}
+              position={[-3.4, 0.15, z]}
               rotation={[0, Math.PI / 2, 0]}
-              fontSize={0.18}
+              fontSize={0.22}
               color={squad.color}
+              font="/fonts/Inter-Bold.otf"
               anchorX="center"
               anchorY="middle"
+              maxWidth={1}
             >
-              {`${squad.name} \n ${squad.projectTag}`}
+              {`${squad.name.toUpperCase()}\n${squad.projectTag}`}
             </Text>
           </group>
         );
@@ -559,11 +581,20 @@ function UnitActor({
   const spawnProgressRef = useRef(shouldSpawn ? 0 : 1);
   const style = ARCHETYPES[bot.archetype];
   const statusStyle = STATUS_STYLE[bot.status];
+  
+  // Unique character mapping via texture offset
   const portraitTexture = useTexture(style.worldTexture);
-
-  useEffect(() => {
-    portraitTexture.needsUpdate = true;
-  }, [portraitTexture]);
+  const charIdx = bot.characterIndex ?? 0;
+  const col = charIdx % SPRITE_GRID.cols;
+  const row = Math.floor(charIdx / SPRITE_GRID.cols);
+  
+  const spriteTexture = useMemo(() => {
+    const tex = portraitTexture.clone();
+    tex.repeat.set(1 / SPRITE_GRID.cols, 1 / SPRITE_GRID.rows);
+    tex.offset.set(col / SPRITE_GRID.cols, 1 - (row + 1) / SPRITE_GRID.rows);
+    tex.needsUpdate = true;
+    return tex;
+  }, [portraitTexture, col, row]);
 
   useEffect(() => {
     if (shouldSpawn) spawnProgressRef.current = 0;
@@ -650,7 +681,7 @@ function UnitActor({
       </mesh>
 
       <sprite position={[0, 0.18, 0.02]} scale={style.worldScale}>
-        <spriteMaterial ref={portraitMatRef} map={portraitTexture} transparent depthWrite={false} />
+        <spriteMaterial ref={portraitMatRef} map={spriteTexture} transparent depthWrite={false} />
       </sprite>
 
       <mesh position={[0, 0.085, 0]} rotation={[-Math.PI / 2, 0, 0]}>
@@ -868,6 +899,20 @@ function loadBots(): BotConfig[] {
 
       const id = rawId || makeBotId(hydrated);
 
+      // Stable character mapping based on index or existing characterIndex
+      let characterIndex = typeof b.characterIndex === "number" ? b.characterIndex : -1;
+      if (characterIndex < 0) {
+        // Find a character index not yet used by hydrated bots
+        const usedChars = new Set(hydrated.map(h => h.characterIndex));
+        for (let c = 0; c < SPRITE_GRID.cols * SPRITE_GRID.rows; c++) {
+          if (!usedChars.has(c)) {
+            characterIndex = c;
+            break;
+          }
+        }
+        if (characterIndex < 0) characterIndex = hydrated.length % (SPRITE_GRID.cols * SPRITE_GRID.rows);
+      }
+
       hydrated.push({
         ...fallback,
         ...b,
@@ -885,6 +930,7 @@ function loadBots(): BotConfig[] {
               ? fallback.squadId
               : squadForSlot(Number.isInteger(b.deskSlot) ? (b.deskSlot as number) : fallback.deskSlot)?.id) ?? SQUADS[0].id,
         projectTag: normalizeProjectTag(typeof b.projectTag === "string" ? b.projectTag : undefined),
+        characterIndex,
       } as BotConfig);
     });
 
@@ -994,6 +1040,16 @@ export default function Page() {
     const placement = recruitPlacement(bots, preferredSquad);
     const projectTag = normalizeProjectTag(recruitDraft.projectTag) || placement.squad.projectTag;
 
+    const usedChars = new Set(bots.map(b => b.characterIndex));
+    let characterIndex = -1;
+    for (let c = 0; c < SPRITE_GRID.cols * SPRITE_GRID.rows; c++) {
+      if (!usedChars.has(c)) {
+        characterIndex = c;
+        break;
+      }
+    }
+    if (characterIndex < 0) characterIndex = bots.length % (SPRITE_GRID.cols * SPRITE_GRID.rows);
+
     const next: BotConfig[] = [
       ...bots,
       {
@@ -1016,6 +1072,7 @@ export default function Page() {
         deskSlot: placement.deskSlot,
         squadId: placement.squad.id,
         projectTag,
+        characterIndex,
       },
     ];
 
@@ -1157,92 +1214,119 @@ export default function Page() {
     "rounded-xl px-5 py-2 text-[10px] font-bold uppercase tracking-[0.2em] transition-all duration-300";
 
   return (
-    <main className="relative min-h-screen overflow-hidden bg-[#020408] px-4 py-8 font-sans text-slate-100 md:px-10 md:py-12">
-      <div className="pointer-events-none absolute inset-0">
-        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(14,165,233,0.15),transparent_70%)]" />
-        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,4,8,0)_0%,rgba(2,4,8,0.8)_100%)]" />
+    <main className="relative min-h-screen overflow-hidden bg-[#020408] px-4 py-8 font-sans text-slate-100 md:px-10 md:py-12 selection:bg-cyan-500/30">
+      {/* Dynamic Background Effects */}
+      <div className="pointer-events-none absolute inset-0 overflow-hidden">
+        <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_-20%,rgba(34,211,238,0.12),transparent_70%)]" />
+        <div className="absolute inset-0 bg-[linear-gradient(180deg,rgba(2,4,8,0)_0%,rgba(2,4,8,0.9)_100%)]" />
+        <div className="scanline" />
+        <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-cyan-500/50 to-transparent blur-sm animate-pulse-glow" />
       </div>
 
       <div className="relative mx-auto grid w-full max-w-[1600px] gap-8 lg:grid-cols-12">
-        <header className={`${panelShell} lg:col-span-12 p-6 md:p-8 flex flex-wrap items-center justify-between gap-6`}>
+        <header className="glass-panel lg:col-span-12 p-6 md:p-10 flex flex-wrap items-center justify-between gap-6 border-cyan-500/10 relative">
+          {/* Header Accent Glow */}
+          <div className="absolute top-0 left-1/2 -translate-x-1/2 w-1/3 h-[1px] bg-gradient-to-r from-transparent via-cyan-400 to-transparent" />
+          
           <div className="relative">
-            <div className="absolute -left-4 top-1/2 h-12 w-1 -translate-y-1/2 rounded-full bg-cyan-400 shadow-[0_0_15px_rgba(34,211,238,0.8)]" />
-            <p className="text-[10px] font-bold uppercase tracking-[0.4em] text-cyan-400/60">System Operator · Command</p>
-            <h1 className="mt-2 text-3xl font-black tracking-tight text-white md:text-5xl uppercase">OpsNode <span className="text-cyan-400">V5</span></h1>
+            <div className="absolute -left-6 top-1/2 h-14 w-1 -translate-y-1/2 rounded-full bg-cyan-400 shadow-[0_0_20px_rgba(34,211,238,0.9)]" />
+            <p className="text-[10px] font-bold uppercase tracking-[0.5em] text-cyan-400/70 hologram-glow">Neural Network Terminal</p>
+            <h1 className="mt-2 text-4xl font-black tracking-tighter text-white md:text-6xl uppercase italic">
+              OpsNode <span className="text-cyan-400 not-italic">V6</span>
+            </h1>
           </div>
-          <div className="flex flex-wrap gap-4">
+
+          <div className="flex flex-wrap gap-8">
             <div className="flex flex-col items-end">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Live Status</p>
-              <div className="mt-1 flex items-center gap-2">
-                <span className="h-2 w-2 rounded-full bg-emerald-400 shadow-[0_0_8px_rgba(52,211,153,0.8)]" />
-                <span className="text-sm font-bold text-emerald-400 uppercase tracking-widest">Active Integrity</span>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">System Pulse</p>
+              <div className="mt-2 flex items-center gap-3">
+                <div className="relative">
+                  <span className="block h-2.5 w-2.5 rounded-full bg-emerald-400" />
+                  <span className="absolute inset-0 h-full w-full rounded-full bg-emerald-400 animate-ping opacity-40" />
+                </div>
+                <span className="text-sm font-black text-emerald-400 uppercase tracking-widest">Active Integrity</span>
               </div>
             </div>
-            <div className="h-10 w-[1px] bg-white/10" />
+            <div className="hidden md:block h-12 w-[1px] bg-white/10" />
             <div className="flex flex-col items-end">
-              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Node Clusters</p>
-              <p className="mt-1 text-xl font-black text-white">{SQUADS.length}</p>
+              <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-slate-500">Nodes Synchronized</p>
+              <p className="mt-1 text-2xl font-black text-white">{bots.length} / {DESK_SLOT_COUNT}</p>
             </div>
           </div>
         </header>
 
         <motion.section
-          initial={{ opacity: 0, scale: 0.98 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: "easeOut" }}
-          className={`${panelShell} lg:col-span-8 p-6 md:p-8`}
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, ease: [0.16, 1, 0.3, 1] }}
+          className="glass-panel lg:col-span-8 p-1 sm:p-2 border-white/5 shadow-2xl overflow-hidden"
         >
-          <div className="relative">
-            <div className="mb-8 flex flex-wrap items-end justify-between gap-4">
+          <div className="relative h-full flex flex-col">
+            <div className="p-6 md:p-8 flex flex-wrap items-end justify-between gap-4 border-b border-white/5 bg-white/2">
               <div>
-                <h2 className="text-xl font-bold uppercase tracking-[0.2em] text-white">Battlefield Projection</h2>
-                <p className="mt-2 text-xs font-medium tracking-widest text-slate-500 uppercase">Interactive Spatial Command Interface</p>
+                <h2 className="text-xl font-bold uppercase tracking-[0.3em] text-white flex items-center gap-3">
+                  <Radar className="w-5 h-5 text-cyan-400" />
+                  Tactical Projection
+                </h2>
+                <p className="mt-2 text-[10px] font-semibold tracking-widest text-slate-500 uppercase italic">Sector 0x7F · Real-time Spatial Arbitration</p>
               </div>
-              <div className="flex rounded-2xl bg-black/40 p-1 backdrop-blur-md border border-white/5">
+              <div className="flex rounded-xl bg-black/60 p-1 backdrop-blur-md border border-white/10">
                 <button
                   onClick={() => setViewMode("commander")}
                   className={`${modeButton} ${
                     viewMode === "commander"
-                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.6)]"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  Commander
+                  Global
                 </button>
                 <button
                   onClick={() => setViewMode("detail")}
                   className={`${modeButton} ${
                     viewMode === "detail"
-                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_20px_rgba(6,182,212,0.4)]"
+                      ? "bg-cyan-500 text-slate-950 shadow-[0_0_25px_rgba(6,182,212,0.6)]"
                       : "text-slate-400 hover:text-white"
                   }`}
                 >
-                  Tactical HUD
+                  Target
                 </button>
               </div>
             </div>
 
-            <div className="relative aspect-[16/9] w-full overflow-hidden rounded-[2.5rem] border border-white/10 bg-[#020408] shadow-[0_40px_100px_-40px_rgba(0,0,0,0.9)]">
-              <div className="pointer-events-none absolute inset-0 z-10 border-[20px] border-black/20" />
-              <div className="pointer-events-none absolute inset-0 z-10 shadow-[inset_0_0_100px_rgba(0,0,0,0.8)]" />
+            <div className="relative grow min-h-[500px] w-full bg-[#010204]">
+              {/* Cockpit Overlay Elements */}
+              <div className="pointer-events-none absolute inset-0 z-20">
+                {/* Viewfinder Corners */}
+                <div className="absolute top-8 left-8 w-12 h-12 border-t-2 border-l-2 border-white/20 rounded-tl-xl" />
+                <div className="absolute top-8 right-8 w-12 h-12 border-t-2 border-r-2 border-white/20 rounded-tr-xl" />
+                <div className="absolute bottom-8 left-8 w-12 h-12 border-b-2 border-l-2 border-white/20 rounded-bl-xl" />
+                <div className="absolute bottom-8 right-8 w-12 h-12 border-b-2 border-r-2 border-white/20 rounded-br-xl" />
+                
+                {/* HUD Elements */}
+                <div className="absolute left-10 top-1/2 -translate-y-1/2 space-y-8 opacity-40">
+                  <div className="h-24 w-1 bg-white/10 rounded-full relative">
+                    <div className="absolute top-1/4 h-1/2 w-full bg-cyan-400 shadow-[0_0_10px_cyan]" />
+                  </div>
+                  <div className="text-[8px] font-bold text-slate-500 uppercase vertical-text tracking-widest">Altimeter</div>
+                </div>
 
-              <div className="pointer-events-none absolute left-8 top-8 z-20">
-                <div className="rounded-lg bg-cyan-500/10 px-4 py-2 backdrop-blur-xl border border-cyan-500/20">
-                  <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Nodes Tracked</p>
-                  <p className="mt-1 text-2xl font-black text-white leading-none">{bots.length}</p>
+                <div className="absolute right-10 top-1/2 -translate-y-1/2 space-y-8 opacity-40 text-right">
+                  <div className="text-[8px] font-bold text-slate-500 uppercase vertical-text tracking-widest">Gain Control</div>
+                  <div className="h-24 w-1 bg-white/10 rounded-full ml-auto relative">
+                    <div className="absolute bottom-1/3 h-1/4 w-full bg-cyan-400 shadow-[0_0_10px_cyan]" />
+                  </div>
                 </div>
               </div>
 
-              <div className="pointer-events-none absolute right-8 top-8 z-20 flex flex-col items-end gap-2">
-                <div className="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-xl border border-white/5 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  Sector: 00-ALPHA
-                </div>
-                <div className="rounded-lg bg-black/60 px-3 py-1.5 backdrop-blur-xl border border-white/5 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  Enc: AES-256-CMD
+              <div className="pointer-events-none absolute left-12 top-12 z-20">
+                <div className="rounded-xl glass-card px-5 py-3 border-cyan-500/20">
+                  <p className="text-[9px] font-black uppercase tracking-[0.4em] text-cyan-400">Nodes Live</p>
+                  <p className="mt-1 text-3xl font-black text-white leading-none italic">{bots.length}</p>
                 </div>
               </div>
 
-              <Canvas camera={{ position: [0, 2, 8], fov: 45 }}>
+              <Canvas camera={{ position: [0, 2.5, 7], fov: 42 }}>
                 <NodeCore
                   bots={bots}
                   selectedBots={selectedBots}
@@ -1265,26 +1349,36 @@ export default function Page() {
                 />
               </Canvas>
 
-              <div className="absolute bottom-8 right-8 z-20 w-48 rounded-2xl bg-black/60 p-4 backdrop-blur-2xl border border-white/10">
-                <div className="mb-3 flex items-center justify-between text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400">
-                  <span>Zoom Level</span>
-                  <span className="text-cyan-400">{zoomPercent}%</span>
+              {/* Bottom HUD Bar */}
+              <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-6 px-8 py-4 glass-card rounded-2xl border-white/10 max-w-[90%] w-auto">
+                <div className="flex items-center gap-4 border-r border-white/10 pr-6">
+                  <div className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-500">Zoom</div>
+                  <input
+                    type="range"
+                    min={MIN_CAMERA_DISTANCE}
+                    max={MAX_CAMERA_DISTANCE}
+                    step={0.05}
+                    value={cameraDistanceTarget}
+                    onChange={(e) => setDistanceTarget(Number(e.target.value))}
+                    className="h-1 w-24 cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-400"
+                  />
+                  <span className="text-[10px] font-black text-cyan-400 w-8">{zoomPercent}%</span>
                 </div>
-                <input
-                  type="range"
-                  min={MIN_CAMERA_DISTANCE}
-                  max={MAX_CAMERA_DISTANCE}
-                  step={0.05}
-                  value={cameraDistanceTarget}
-                  onChange={(e) => setDistanceTarget(Number(e.target.value))}
-                  className="h-1.5 w-full cursor-pointer appearance-none rounded-full bg-white/10 accent-cyan-400"
-                />
-                <button
-                  onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
-                  className="mt-3 w-full rounded-lg bg-white/5 py-2 text-[9px] font-bold uppercase tracking-[0.2em] text-slate-400 hover:bg-white/10 hover:text-white transition-all"
-                >
-                  Reset Focus
-                </button>
+                
+                <div className="flex items-center gap-3">
+                  <button 
+                    onClick={() => setDistanceTarget(DEFAULT_CAMERA_DISTANCE)}
+                    className="p-2 rounded-lg bg-white/5 text-slate-400 hover:text-white hover:bg-white/10 transition-all"
+                  >
+                    <RotateCcw className="w-4 h-4" />
+                  </button>
+                  <div className="h-6 w-[1px] bg-white/10" />
+                  <div className="flex gap-1">
+                    {SQUADS.map(s => (
+                      <div key={s.id} className="w-3 h-3 rounded-full border border-white/20" style={{ backgroundColor: s.color + '44' }} />
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
@@ -1297,7 +1391,7 @@ export default function Page() {
                 <div className="rounded-[2rem] border border-white/10 bg-gradient-to-br from-white/5 to-transparent p-6">
                   <div className="flex items-center gap-6">
                     <div className="h-24 w-24 shrink-0 overflow-hidden rounded-2xl border-2 border-cyan-500/30 bg-black/40 p-1">
-                      <UnitPortrait src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full object-cover rounded-xl" />
+                      <UnitPortrait bot={selected} src={ARCHETYPES[selected.archetype].avatar} alt={selected.name} className="h-full w-full rounded-xl" />
                     </div>
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-[0.3em] text-cyan-400">Operator Profile</p>
@@ -1457,7 +1551,7 @@ export default function Page() {
                             className="absolute -left-2 -top-2 z-20 h-5 w-5 rounded-full border-2 border-slate-700 bg-slate-950 text-cyan-500 transition-all checked:border-cyan-500"
                           />
                           <div className="h-12 w-12 overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-1 shadow-2xl">
-                            <UnitPortrait src={ARCHETYPES[b.archetype].avatar} alt={b.name} className="h-full w-full object-cover rounded-xl" />
+                            <UnitPortrait bot={b} src={ARCHETYPES[b.archetype].avatar} alt={b.name} className="h-full w-full rounded-xl" />
                           </div>
                         </div>
                         <button className="text-left" onClick={() => setSelectedId(b.id)}>
@@ -1739,7 +1833,44 @@ export default function Page() {
   );
 }
 
-function UnitPortrait({ src, alt, className = "h-full w-full object-cover" }: { src: string; alt: string; className?: string }) {
+function UnitPortrait({ 
+  bot, 
+  src, 
+  alt, 
+  className = "h-full w-full object-cover" 
+}: { 
+  bot?: BotConfig; 
+  src: string; 
+  alt: string; 
+  className?: string 
+}) {
+  const charIdx = bot?.characterIndex;
+  
+  if (typeof charIdx === 'number') {
+    const col = charIdx % SPRITE_GRID.cols;
+    const row = Math.floor(charIdx / SPRITE_GRID.cols);
+    const xPercent = (col / (SPRITE_GRID.cols - 1)) * 100;
+    const yPercent = (row / (SPRITE_GRID.rows - 1)) * 100;
+    
+    return (
+      <div className={`${className} overflow-hidden bg-black/20 relative`}>
+        <img 
+          src={SPRITE_SHEET} 
+          alt={alt} 
+          className="absolute max-w-none"
+          style={{
+            width: `${SPRITE_GRID.cols * 100}%`,
+            height: `${SPRITE_GRID.rows * 100}%`,
+            left: `-${col * 100}%`,
+            top: `-${row * 100}%`,
+            imageRendering: 'pixelated'
+          }}
+          draggable={false} 
+        />
+      </div>
+    );
+  }
+  
   return <img src={src} alt={alt} className={className} draggable={false} />;
 }
 
