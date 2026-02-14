@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, Suspense } from "react";
 import { Canvas, type ThreeEvent, useFrame } from "@react-three/fiber";
 import { OrbitControls, Float, Line, Clone, Text, useGLTF, useTexture } from "@react-three/drei";
 import { Group, MeshBasicMaterial, MeshStandardMaterial, SpriteMaterial, Vector3 } from "three";
@@ -1326,28 +1326,30 @@ export default function Page() {
                 </div>
               </div>
 
-              <Canvas camera={{ position: [0, 2.5, 7], fov: 42 }}>
-                <NodeCore
-                  bots={bots}
-                  selectedBots={selectedBots}
-                  spawnedBotIds={spawnedBotIds}
-                  zoomTarget={cameraDistanceTarget}
-                  onZoomDistance={(distance) => {
-                    setCameraDistance(distance);
-                    setCameraDistanceTarget(distance);
-                  }}
-                  onUnitSelect={(id, additive) => {
-                    setSelectedId(id);
-                    setSelectedBots((prev) => {
-                      if (additive) {
-                        return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
-                      }
-                      return [id];
-                    });
-                  }}
-                  onClearSelection={() => setSelectedBots([])}
-                />
-              </Canvas>
+              <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500 font-mono text-[10px] animate-pulse">Initializing Tactical Link...</div>}>
+                <Canvas camera={{ position: [0, 2.5, 7], fov: 42 }}>
+                  <NodeCore
+                    bots={bots}
+                    selectedBots={selectedBots}
+                    spawnedBotIds={spawnedBotIds}
+                    zoomTarget={cameraDistanceTarget}
+                    onZoomDistance={(distance) => {
+                      setCameraDistance(distance);
+                      setCameraDistanceTarget(distance);
+                    }}
+                    onUnitSelect={(id, additive) => {
+                      setSelectedId(id);
+                      setSelectedBots((prev) => {
+                        if (additive) {
+                          return prev.includes(id) ? prev.filter((x) => x !== id) : [...prev, id];
+                        }
+                        return [id];
+                      });
+                    }}
+                    onClearSelection={() => setSelectedBots([])}
+                  />
+                </Canvas>
+              </Suspense>
 
               {/* Bottom HUD Bar */}
               <div className="absolute bottom-8 left-1/2 -translate-x-1/2 z-20 flex items-center gap-6 px-8 py-4 glass-card rounded-2xl border-white/10 max-w-[90%] w-auto">
