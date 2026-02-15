@@ -468,7 +468,6 @@ function SceneEnvironment({
               rotation={[0, Math.PI / 2, 0]}
               fontSize={0.22}
               color={squad.color}
-              font="/fonts/Inter-Bold.otf"
               anchorX="center"
               anchorY="middle"
               maxWidth={1}
