@@ -734,6 +734,7 @@ function NodeCore({
   spawnedBotIds,
   zoomTarget,
   onZoomDistance,
+  onReady,
 }: {
   bots: BotConfig[];
   selectedBots: string[];
@@ -742,6 +743,7 @@ function NodeCore({
   spawnedBotIds: string[];
   zoomTarget: number;
   onZoomDistance: (distance: number) => void;
+  onReady?: () => void;
 }) {
   const squad = useMemo(
     () => [...bots].sort((a, b) => (a.deskSlot ?? Number.MAX_SAFE_INTEGER) - (b.deskSlot ?? Number.MAX_SAFE_INTEGER)).slice(0, DESK_SLOT_COUNT),
@@ -788,6 +790,7 @@ function NodeCore({
   useFrame((state, delta) => {
     const controls = controlsRef.current;
     if (!controls) return;
+    onReady?.();
     const distance = controls.object.position.distanceTo(controls.target);
     if (Math.abs(distance - distanceRef.current) > 0.02) {
       distanceRef.current = distance;
@@ -982,6 +985,7 @@ export default function Page() {
   const [spawnedBotIds, setSpawnedBotIds] = useState<string[]>([]);
   const [cameraDistance, setCameraDistance] = useState(DEFAULT_CAMERA_DISTANCE);
   const [cameraDistanceTarget, setCameraDistanceTarget] = useState(DEFAULT_CAMERA_DISTANCE);
+  const [sceneReady, setSceneReady] = useState(false);
 
   useEffect(() => {
     const loaded = loadBots();
@@ -1317,7 +1321,12 @@ export default function Page() {
               </div>
 
               <Suspense fallback={<div className="w-full h-full flex items-center justify-center text-cyan-500 font-mono text-[10px] animate-pulse">Initializing Tactical Link...</div>}>
-                <Canvas camera={{ position: [0, 2.5, 7], fov: 42 }}>
+                {!sceneReady && (
+                  <div className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center bg-[#020408]/70 text-cyan-400 font-mono text-[10px] animate-pulse">
+                    Initializing Tactical Link...
+                  </div>
+                )}
+                <Canvas camera={{ position: [0, 2.5, 7], fov: 42 }} onCreated={() => setSceneReady(true)}>
                   <NodeCore
                     bots={bots}
                     selectedBots={selectedBots}
@@ -1326,6 +1335,9 @@ export default function Page() {
                     onZoomDistance={(distance) => {
                       setCameraDistance(distance);
                       setCameraDistanceTarget(distance);
+                    }}
+                    onReady={() => {
+                      if (!sceneReady) setSceneReady(true);
                     }}
                     onUnitSelect={(id, additive) => {
                       setSelectedId(id);
