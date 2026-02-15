@@ -5,14 +5,24 @@
   --foreground: #f8fafc;
   --font-sans-local: "IBM Plex Sans", "Avenir Next", "Segoe UI", sans-serif;
   --font-mono-local: "JetBrains Mono", "SFMono-Regular", "Consolas", monospace;
-  
-  --glass-bg: rgba(10, 20, 40, 0.45);
-  --glass-border: rgba(255, 255, 255, 0.08);
-  --glass-glow: 0 8px 32px 0 rgba(0, 0, 0, 0.8);
-  
-  --accent-cyan: #22d3ee;
-  --accent-violet: #8b5cf6;
-  --accent-emerald: #10b981;
+
+  /* OpsNode merged DNA (VoxYZ + Ralv) */
+  --ops-slate-950: #13161f;
+  --ops-slate-900: #1e2231;
+  --ops-slate-700: #6b7194;
+  --ops-mist-100: #e8e6f0;
+  --ops-cyan: #7dd3c0;
+  --ops-blue: #2d5da1;
+  --ops-orange: #f4a261;
+  --ops-alert: #ff4d4d;
+
+  --glass-bg: color-mix(in srgb, var(--ops-slate-950) 72%, #000 28%);
+  --glass-border: rgba(232, 230, 240, 0.1);
+  --glass-glow: 0 10px 40px 0 rgba(0, 0, 0, 0.82), 0 0 28px rgba(45, 93, 161, 0.12);
+
+  --accent-cyan: var(--ops-cyan);
+  --accent-violet: #a292c4;
+  --accent-emerald: #9ad380;
 }
 
 @theme inline {
@@ -47,16 +57,18 @@ body {
   
   .glass-card:hover {
     background: rgba(255, 255, 255, 0.06);
-    border-color: rgba(255, 255, 255, 0.12);
-    box-shadow: 0 0 20px rgba(34, 211, 238, 0.1);
+    border-color: rgba(232, 230, 240, 0.2);
+    box-shadow: 0 0 22px color-mix(in srgb, var(--ops-blue) 45%, transparent),
+      0 0 32px color-mix(in srgb, var(--ops-orange) 18%, transparent);
   }
 
   .hologram-glow {
-    text-shadow: 0 0 10px rgba(34, 211, 238, 0.5);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--ops-cyan) 65%, transparent);
   }
 
   .hologram-border {
-    box-shadow: inset 0 0 15px rgba(34, 211, 238, 0.1), 0 0 15px rgba(34, 211, 238, 0.1);
+    box-shadow: inset 0 0 15px color-mix(in srgb, var(--ops-blue) 30%, transparent),
+      0 0 15px color-mix(in srgb, var(--ops-cyan) 24%, transparent);
   }
 
   .scanline {

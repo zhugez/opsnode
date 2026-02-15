@@ -260,9 +260,9 @@ type SquadDefinition = {
 };
 
 const SQUADS: SquadDefinition[] = [
-  { id: "alpha", name: "Squad Alpha", projectTag: "NEXUS", color: "#67e8f9" },
-  { id: "bravo", name: "Squad Bravo", projectTag: "ORBIT", color: "#a5b4fc" },
-  { id: "charlie", name: "Squad Charlie", projectTag: "AURORA", color: "#6ee7b7" },
+  { id: "alpha", name: "Squad Alpha", projectTag: "NEXUS", color: "#7dd3c0" },
+  { id: "bravo", name: "Squad Bravo", projectTag: "ORBIT", color: "#2d5da1" },
+  { id: "charlie", name: "Squad Charlie", projectTag: "AURORA", color: "#f4a261" },
 ];
 
 const DESK_SLOT_COUNT = SQUADS.length * SQUAD_SIZE;
@@ -416,12 +416,12 @@ function SceneEnvironment({
 
   return (
     <>
-      <color attach="background" args={["#010204"]} />
+      <color attach="background" args={["#13161f"]} />
       <ambientLight intensity={0.15} color="#d1eaff" />
       <directionalLight position={[5, 8, 5]} intensity={1.4} color="#ffffff" />
       <directionalLight position={[-5, 4, -2]} intensity={0.6} color="#7dd3fc" />
-      <pointLight position={[0, 4, 0]} intensity={1.2} color="#0ea5e9" />
-      <spotLight position={[0, 6, 0]} angle={0.4} penumbra={1} intensity={2} color="#22d3ee" castShadow />
+      <pointLight position={[0, 4, 0]} intensity={1.2} color="#2d5da1" />
+      <spotLight position={[0, 6, 0]} angle={0.4} penumbra={1} intensity={2} color="#7dd3c0" castShadow />
 
       {/* Main Floor Plate */}
       <mesh position={[0, -0.585, 0]} rotation={[-Math.PI / 2, 0, 0]} onPointerDown={onClearSelection}>
@@ -432,7 +432,7 @@ function SceneEnvironment({
       {/* Premium Glass Floor */}
       <mesh position={[0, -0.58, 0]} rotation={[-Math.PI / 2, 0, 0]}>
         <planeGeometry args={[12, 10]} />
-        <meshStandardMaterial color="#0a0f1d" roughness={0.05} metalness={0.9} envMapIntensity={1} />
+        <meshStandardMaterial color="#1e2231" roughness={0.05} metalness={0.9} envMapIntensity={1} />
       </mesh>
 
       {/* Grid Pattern */}
@@ -537,7 +537,7 @@ function SceneEnvironment({
         </mesh>
       </Float>
 
-      <Line points={inlayRun} color="#38bdf8" lineWidth={2} transparent opacity={0.3} />
+      <Line points={inlayRun} color="#f4a261" lineWidth={2} transparent opacity={0.32} />
     </>
   );
 }
